@@ -1,0 +1,19 @@
+[Unit]
+Description=Oeil — Recorder worker (FFmpeg event-triggered recording)
+After=network-online.target oeil-go2rtc.service oeil-api.service
+Requires=oeil-api.service
+
+[Service]
+Type=simple
+User=oeil
+Group=oeil
+WorkingDirectory=/opt/oeil
+EnvironmentFile=/etc/oeil/oeil.env
+# The recorder runs inside the API process — this unit is a watchdog/restarter
+ExecStart=/bin/bash -c 'while true; do sleep 60; done'
+Restart=always
+RestartSec=10
+SyslogIdentifier=oeil-recorder
+
+[Install]
+WantedBy=multi-user.target

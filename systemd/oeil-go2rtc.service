@@ -1,0 +1,21 @@
+# ── oeil-go2rtc.service ──────────────────────────────────────────────────
+# RTSP/ONVIF proxy + HLS/WebRTC bridge
+
+[Unit]
+Description=Oeil — go2rtc stream proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=oeil
+Group=oeil
+ExecStart=/usr/local/bin/go2rtc -config /etc/oeil/go2rtc.yaml
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=oeil-go2rtc
+
+[Install]
+WantedBy=multi-user.target

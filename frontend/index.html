@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oeil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- HLS.js for camera stream playback -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c0f;--bg2:#111318;--bg3:#181c22;--bg4:#1e232b;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e8eaf0;--text2:#8a909e;--text3:#555d6e;
+  --green:#00e676;--green-dim:rgba(0,230,118,0.1);
+  --red:#ff3d57;--red-dim:rgba(255,61,87,0.1);
+  --amber:#ffab00;--amber-dim:rgba(255,171,0,0.1);
+  --blue:#2979ff;--blue-dim:rgba(41,121,255,0.1);
+  --font:'Space Grotesk',sans-serif;--mono:'IBM Plex Mono',monospace;
+  --r:6px;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+
+/* ── Login ─────────────────────────────────────────────────────── */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:36px 40px;width:360px}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.login-logo-icon{width:36px;height:36px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.login-logo-icon svg{width:20px;height:20px}
+.login-title{font-size:20px;font-weight:600}
+.login-title span{color:var(--green)}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.5px;display:block;margin-bottom:6px;text-transform:uppercase}
+.form-input{width:100%;height:38px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:13px;padding:0 12px;outline:none;transition:.15s}
+.form-input:focus{border-color:var(--border2)}
+.btn-primary{width:100%;height:38px;background:var(--green);border:none;border-radius:var(--r);color:#000;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:.15s;margin-top:8px}
+.btn-primary:hover{background:#00ff88}
+.login-error{font-size:12px;color:var(--red);margin-top:8px;display:none}
+
+/* ── Topbar ────────────────────────────────────────────────────── */
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:16px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;letter-spacing:-.3px}
+.logo-icon{width:26px;height:26px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center}
+.logo-icon svg{width:14px;height:14px;color:#000}
+.logo span{color:var(--green)}
+.topbar-nav{flex:1;display:flex;align-items:center;justify-content:center;gap:2px}
+.nav-btn{padding:5px 14px;border-radius:5px;border:none;background:transparent;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;transition:.12s;position:relative}
+.nav-btn:hover{background:var(--bg3);color:var(--text)}
+.nav-btn.active{background:var(--green-dim);color:var(--green)}
+.nav-badge{position:absolute;top:3px;right:6px;background:var(--red);color:#fff;border-radius:99px;font-size:9px;font-weight:700;padding:0 4px;min-width:14px;text-align:center}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.status-pill{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;letter-spacing:.3px}
+.status-pill.online{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,230,118,.2)}
+.status-pill.offline{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,61,87,.2)}
+.blink{animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.icon-btn{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.12s}
+.icon-btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.icon-btn svg{width:15px;height:15px}
+
+/* ── Layout ───────────────────────────────────────────────────── */
+.app-body{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px)}
+.sidebar{width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.panel{display:none;flex-direction:column;flex:1;overflow:hidden}
+.panel.active{display:flex}
+
+/* ── Sidebar ──────────────────────────────────────────────────── */
+.sb-section{padding:10px 0;border-bottom:1px solid var(--border)}
+.sb-label{padding:0 14px 5px;font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3)}
+.sb-item{display:flex;align-items:center;gap:9px;padding:7px 14px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:.12s}
+.sb-item:hover{background:var(--bg3);color:var(--text)}
+.sb-item.active{background:var(--green-dim);color:var(--green);border-left-color:var(--green)}
+.sb-item svg{width:13px;height:13px;flex-shrink:0}
+.sb-count{margin-left:auto;font-size:10px;font-family:var(--mono);color:var(--text3)}
+.cam-entry{display:flex;align-items:center;gap:8px;padding:5px 14px;cursor:pointer;transition:.12s;border-left:2px solid transparent}
+.cam-entry:hover{background:var(--bg3)}
+.cam-entry.active{background:var(--green-dim);border-left-color:var(--green)}
+.cam-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cam-entry-info{flex:1;overflow:hidden}
+.cam-entry-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cam-entry-sub{font-size:10px;color:var(--text3)}
+.sb-footer{padding:12px 14px;margin-top:auto;border-top:1px solid var(--border)}
+.sb-footer p{font-size:10px;color:var(--text3);line-height:1.7}
+
+/* ── Live grid ────────────────────────────────────────────────── */
+.live-toolbar{height:40px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0}
+.tb-label{font-size:12px;color:var(--text2)}
+.tb-sep{flex:1}
+.grid-toggle{display:flex;gap:3px}
+.grid-opt{padding:3px 9px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;transition:.12s}
+.grid-opt:hover{border-color:var(--border2);color:var(--text2)}
+.grid-opt.active{background:var(--green-dim);color:var(--green);border-color:rgba(0,230,118,.2)}
+.tb-btn{padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:500;cursor:pointer;transition:.12s}
+.tb-btn:hover{background:var(--bg3);color:var(--text)}
+.tb-btn.danger{color:var(--red);border-color:rgba(255,61,87,.2)}
+.tb-btn.danger:hover{background:var(--red-dim)}
+.tb-btn.success{color:var(--green);border-color:rgba(0,230,118,.2)}
+
+.live-body{display:flex;flex:1;overflow:hidden}
+.cam-grid{flex:1;overflow-y:auto;padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:start}
+.cam-grid.g1{grid-template-columns:1fr}
+.cam-grid.g2{grid-template-columns:repeat(2,1fr)}
+.cam-grid.g4{grid-template-columns:repeat(4,1fr)}
+
+.cam-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:border-color .15s;position:relative}
+.cam-card:hover{border-color:var(--border2)}
+.cam-card.selected{border-color:var(--green)}
+.cam-card.motion-active{border-color:var(--red)}
+
+.cam-feed{width:100%;aspect-ratio:16/9;background:#050507;position:relative;overflow:hidden}
+.cam-video{width:100%;height:100%;object-fit:contain;display:block}
+.cam-offline-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#050507}
+.cam-offline-overlay svg{width:24px;height:24px;color:var(--text3);margin-bottom:6px}
+.cam-offline-overlay span{font-size:11px;font-family:var(--mono);color:var(--text3)}
+
+.cam-overlay{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column}
+.cam-ov-top{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent)}
+.cam-ov-name{font-size:11px;font-weight:600;letter-spacing:.3px;color:#fff;display:flex;align-items:center;gap:5px}
+.rec-pill{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--red);font-family:var(--mono)}
+.rec-dot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:blink 1s infinite}
+.cam-ov-bot{margin-top:auto;padding:6px 8px;background:linear-gradient(to top,rgba(0,0,0,.75),transparent);display:flex;align-items:center;justify-content:space-between}
+.cam-ts{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.6)}
+.motion-badge{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;letter-spacing:.4px;background:var(--red);color:#fff;display:none}
+.motion-badge.show{display:block;animation:blink .8s infinite}
+
+.cam-footer{padding:5px 8px;display:flex;align-items:center;justify-content:space-between}
+.cam-footer-l{display:flex;align-items:center;gap:5px}
+.cam-status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.cam-lbl{font-size:11px;color:var(--text2)}
+.cam-actions{display:flex;gap:3px}
+.cam-act{width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.12s;pointer-events:all}
+.cam-act:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.cam-act svg{width:11px;height:11px}
+.cam-act.recording{color:var(--red);border-color:rgba(255,61,87,.3)}
+
+/* ── Right panel ──────────────────────────────────────────────── */
+.right-panel{width:260px;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.rp-header{padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+.rp-live{font-size:10px;font-family:var(--mono);color:var(--green)}
+.rp-body{flex:1;overflow-y:auto}
+.rp-sec{padding:10px 14px;border-bottom:1px solid var(--border)}
+.rp-sec-lbl{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0}
+.stat-lbl{font-size:11px;color:var(--text2)}
+.stat-val{font-size:11px;font-family:var(--mono);font-weight:500}
+.stat-val.g{color:var(--green)}.stat-val.r{color:var(--red)}.stat-val.a{color:var(--amber)}
+.ev-item{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)}
+.ev-item:last-child{border-bottom:none}
+.ev-icon{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.ev-icon svg{width:10px;height:10px}
+.ev-icon.motion{background:var(--red-dim);color:var(--red)}
+.ev-icon.person{background:var(--amber-dim);color:var(--amber)}
+.ev-icon.vehicle{background:var(--blue-dim);color:var(--blue)}
+.ev-icon.anpr{background:var(--green-dim);color:var(--green)}
+.ev-icon.system{background:var(--bg3);color:var(--text3)}
+.ev-text{flex:1;overflow:hidden}
+.ev-title{font-size:11px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-sub{font-size:10px;color:var(--text3);margin-top:1px}
+
+/* ── Recordings ───────────────────────────────────────────────── */
+.rec-toolbar{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
+.search-input{flex:1;min-width:140px;height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font);font-size:12px;padding:0 10px;outline:none}
+.search-input:focus{border-color:var(--border2)}
+.search-input::placeholder{color:var(--text3)}
+.filter-sel{height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-family:var(--font);font-size:12px;padding:0 8px;outline:none;cursor:pointer}
+.rec-list{flex:1;overflow-y:auto;padding:10px 14px}
+.rec-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;margin-bottom:4px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:.12s}
+.rec-item:hover{border-color:var(--border2)}
+.rec-thumb{width:60px;height:36px;border-radius:3px;background:var(--bg4);flex-shrink:0;overflow:hidden;position:relative}
+.rec-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.rec-thumb-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.rec-thumb-placeholder svg{width:16px;height:16px;color:var(--text3)}
+.rec-info{flex:1;overflow:hidden}
+.rec-title{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-meta{font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+.rec-tags{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap}
+.tag{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;letter-spacing:.3px}
+.tag.person{background:var(--amber-dim);color:var(--amber)}
+.tag.vehicle{background:var(--blue-dim);color:var(--blue)}
+.tag.intrusion{background:var(--red-dim);color:var(--red)}
+.tag.motion{background:var(--bg4);color:var(--text3)}
+.rec-acts{display:flex;gap:3px;flex-shrink:0}
+.rec-empty{text-align:center;color:var(--text3);padding:40px;font-size:13px}
+
+/* ── ANPR ─────────────────────────────────────────────────────── */
+.anpr-layout{display:flex;flex:1;overflow:hidden}
+.anpr-main{flex:1;overflow-y:auto;padding:14px}
+.anpr-sidebar-r{width:240px;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.plate-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:12px}
+.plate-card.watchlist-hit{border-left:3px solid var(--red)}
+.plate-number{font-family:var(--mono);font-size:18px;font-weight:500;letter-spacing:2px;color:var(--text);min-width:110px}
+.plate-meta{flex:1}
+.plate-cam{font-size:11px;color:var(--text2)}
+.plate-time{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px}
+.plate-tags{display:flex;gap:4px;margin-top:4px}
+.wl-badge{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;background:var(--red-dim);color:var(--red)}
+.dir-badge{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;background:var(--bg4);color:var(--text3)}
+.plate-snap{width:80px;height:45px;border-radius:4px;background:var(--bg4);overflow:hidden;flex-shrink:0}
+.plate-snap img{width:100%;height:100%;object-fit:cover}
+.anpr-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.anpr-stat{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;text-align:center}
+.anpr-stat-val{font-size:22px;font-weight:600;font-family:var(--mono);color:var(--text)}
+.anpr-stat-lbl{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* ── Alerts ───────────────────────────────────────────────────── */
+.alerts-toolbar{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.alerts-list{flex:1;overflow-y:auto;padding:12px}
+.alert-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;transition:.12s}
+.alert-card:hover{border-color:var(--border2)}
+.alert-card.unread.crit{border-left:3px solid var(--red)}
+.alert-card.unread.warn{border-left:3px solid var(--amber)}
+.alert-card.unread.info{border-left:3px solid var(--blue)}
+.alert-icon{width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.alert-icon svg{width:14px;height:14px}
+.alert-icon.crit{background:var(--red-dim);color:var(--red)}
+.alert-icon.warn{background:var(--amber-dim);color:var(--amber)}
+.alert-icon.info{background:var(--blue-dim);color:var(--blue)}
+.alert-body{flex:1}
+.alert-title{font-size:13px;font-weight:500;color:var(--text)}
+.alert-desc{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.5}
+.alert-time{font-size:10px;font-family:var(--mono);color:var(--text3);margin-top:4px}
+
+/* ── Settings ─────────────────────────────────────────────────── */
+.settings-layout{display:flex;flex:1;overflow:hidden}
+.settings-nav{width:170px;border-right:1px solid var(--border);padding:10px 0;flex-shrink:0}
+.settings-nav-item{padding:7px 16px;font-size:12px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:.12s}
+.settings-nav-item:hover{color:var(--text);background:var(--bg3)}
+.settings-nav-item.active{color:var(--green);background:var(--green-dim);border-left-color:var(--green)}
+.settings-content{flex:1;overflow-y:auto;padding:20px}
+.settings-section{margin-bottom:24px}
+.settings-h{font-size:15px;font-weight:600;margin-bottom:3px}
+.settings-sub{font-size:12px;color:var(--text2);margin-bottom:14px}
+.s-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
+.s-row:last-child{border-bottom:none}
+.s-row-info{flex:1;margin-right:12px}
+.s-row-label{font-size:13px;color:var(--text)}
+.s-row-desc{font-size:11px;color:var(--text2);margin-top:2px}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.tgl-slider{position:absolute;inset:0;background:var(--bg4);border-radius:10px;cursor:pointer;border:1px solid var(--border2);transition:.2s}
+.tgl-slider::after{content:'';position:absolute;width:14px;height:14px;background:var(--text3);border-radius:50%;top:2px;left:2px;transition:.2s}
+.toggle input:checked + .tgl-slider{background:var(--green-dim);border-color:rgba(0,230,118,.3)}
+.toggle input:checked + .tgl-slider::after{left:18px;background:var(--green)}
+.s-input{width:180px;height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font);font-size:12px;padding:0 10px;outline:none}
+.s-input:focus{border-color:var(--border2)}
+.s-select{height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-family:var(--font);font-size:12px;padding:0 8px;outline:none;cursor:pointer}
+
+/* ── Schedules ────────────────────────────────────────────────── */
+.schedule-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-bottom:8px}
+.schedule-name{font-size:13px;font-weight:600;margin-bottom:6px}
+.schedule-detail{font-size:11px;color:var(--text2);line-height:1.7}
+
+/* ── Modal ────────────────────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;width:460px;max-width:95vw}
+.modal-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:600}
+.modal-close{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;padding:2px}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:16px}
+.modal-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.btn{padding:6px 14px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:.12s}
+.btn:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.btn-ok{background:var(--green);color:#000;border-color:transparent}
+.btn-ok:hover{background:#00ff88;color:#000}
+.btn-danger{color:var(--red);border-color:rgba(255,61,87,.2)}
+.btn-danger:hover{background:var(--red-dim)}
+.form-row{margin-bottom:12px}
+.form-row label{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:5px}
+.form-row input,.form-row select{width:100%;height:32px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font);font-size:12px;padding:0 10px;outline:none}
+.form-row input:focus,.form-row select:focus{border-color:var(--border2)}
+.form-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── Toast ────────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast-msg{background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text);min-width:220px;animation:slideIn .2s ease;pointer-events:all}
+.toast-msg.success{border-left:3px solid var(--green)}
+.toast-msg.error{border-left:3px solid var(--red)}
+.toast-msg.info{border-left:3px solid var(--blue)}
+@keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+
+/* ── Misc ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+.loading{color:var(--text3);font-size:12px;padding:20px;text-align:center}
+.empty{color:var(--text3);font-size:12px;padding:30px;text-align:center}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M3 12h2M19 12h2M12 3v2M12 19v2"/></svg>
+      </div>
+      <div class="login-title">Oeil<span> by Openema</span></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input class="form-input" id="l-user" type="text" value="admin" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="l-err">Invalid username or password</div>
+  </div>
+</div>
+
+<!-- MAIN APP (hidden until login) -->
+<div id="app" style="display:none;flex-direction:column;height:100vh">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M3 12h2M19 12h2M12 3v2M12 19v2"/></svg></div>
+      Oeil<span> by Openema</span>
+    </div>
+    <div class="topbar-nav">
+      <button class="nav-btn active" onclick="showPanel('live')">Live View</button>
+      <button class="nav-btn" onclick="showPanel('recordings')">Recordings</button>
+      <button class="nav-btn" onclick="showPanel('anpr')">ANPR <span class="nav-badge" id="anpr-badge" style="display:none">!</span></button>
+      <button class="nav-btn" onclick="showPanel('alerts')">Alerts <span class="nav-badge" id="alert-badge" style="display:none">0</span></button>
+      <button class="nav-btn" onclick="showPanel('settings')">Settings</button>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill online" id="sys-status"><div class="blink">●</div> <span id="sys-status-text">Connecting…</span></div>
+      <button class="icon-btn" title="Snapshot all" onclick="snapshotAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><circle cx="12" cy="14" r="3"/></svg>
+      </button>
+      <button class="icon-btn" title="Logout" onclick="doLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sb-section">
+        <div class="sb-label">Views</div>
+        <div class="sb-item active" onclick="setGrid(3);setSbActive(this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          All Cameras <span class="sb-count" id="cam-count">0</span>
+        </div>
+        <div class="sb-item" onclick="setGrid(1);setSbActive(this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/></svg>
+          Full Screen
+        </div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Cameras</div>
+        <div id="cam-sidebar"></div>
+      </div>
+      <div class="sb-section">
+        <div class="sb-label">Actions</div>
+        <div class="sb-item" onclick="openAddCamera()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          Add Camera
+        </div>
+        <div class="sb-item" id="arm-btn" onclick="armAll()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span id="arm-label">Arm All</span>
+        </div>
+        <div class="sb-item" onclick="importCameras()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+          Import YAML
+        </div>
+        <div class="sb-item" onclick="showPanel('anpr')" style="color:var(--amber)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 11h.01M10 11h4M18 11h.01"/></svg>
+          ANPR Console
+        </div>
+      </div>
+      <div class="sb-footer">
+        <p>Oeil v1.1.0<br>MIT License<br>Ability Enterprise cameras</p>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+      <!-- LIVE VIEW -->
+      <div class="panel active" id="panel-live">
+        <div class="live-toolbar">
+          <span class="tb-label">Live Surveillance</span>
+          <div class="grid-toggle">
+            <button class="grid-opt" onclick="setGrid(1)">1×1</button>
+            <button class="grid-opt" onclick="setGrid(2)">2×2</button>
+            <button class="grid-opt active" onclick="setGrid(3)">3×3</button>
+            <button class="grid-opt" onclick="setGrid(4)">4×4</button>
+          </div>
+          <div class="tb-sep"></div>
+          <button class="tb-btn" onclick="snapshotAll()">📷 Snapshot All</button>
+          <button class="tb-btn danger" id="rec-all-btn" onclick="toggleRecordAll()">⏺ Record All</button>
+          <button class="tb-btn success" onclick="refreshCameras()">↺ Refresh</button>
+        </div>
+        <div class="live-body">
+          <div class="cam-grid g3" id="cam-grid"></div>
+          <div class="right-panel">
+            <div class="rp-header">System Status <span class="rp-live" id="rp-live-dot">● LIVE</span></div>
+            <div class="rp-body">
+              <div class="rp-sec">
+                <div class="rp-sec-lbl">Overview</div>
+                <div class="stat-row"><span class="stat-lbl">Active cameras</span><span class="stat-val g" id="s-active">—</span></div>
+                <div class="stat-row"><span class="stat-lbl">Recording</span><span class="stat-val r" id="s-rec">—</span></div>
+                <div class="stat-row"><span class="stat-lbl">go2rtc</span><span class="stat-val" id="s-go2rtc">—</span></div>
+                <div class="stat-row"><span class="stat-lbl">Storage used</span><span class="stat-val" id="s-disk">—</span></div>
+                <div class="stat-row"><span class="stat-lbl">Uptime</span><span class="stat-val" id="s-uptime">—</span></div>
+              </div>
+              <div class="rp-sec">
+                <div class="rp-sec-lbl">Live Events</div>
+                <div id="live-events"><div class="empty">Waiting for events…</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECORDINGS -->
+      <div class="panel" id="panel-recordings">
+        <div class="rec-toolbar">
+          <input type="text" class="search-input" id="rec-search" placeholder="Search camera…" oninput="loadRecordings()">
+          <select class="filter-sel" id="rec-person" onchange="loadRecordings()">
+            <option value="">All events</option>
+            <option value="person">Person</option>
+            <option value="vehicle">Vehicle</option>
+            <option value="intrusion">Intrusion</option>
+          </select>
+          <button class="tb-btn" onclick="loadRecordings()">↺ Refresh</button>
+        </div>
+        <div class="rec-list" id="rec-list"><div class="loading">Loading recordings…</div></div>
+      </div>
+
+      <!-- ANPR -->
+      <div class="panel" id="panel-anpr">
+        <div class="live-toolbar">
+          <span class="tb-label">ANPR — License Plate Recognition</span>
+          <div class="tb-sep"></div>
+          <button class="tb-btn" onclick="openAddWatchlist()">+ Watchlist</button>
+          <button class="tb-btn" onclick="loadANPR()">↺ Refresh</button>
+        </div>
+        <div class="anpr-layout">
+          <div class="anpr-main">
+            <div class="anpr-stats-row" id="anpr-stats"></div>
+            <div id="anpr-plates"><div class="loading">Loading detections…</div></div>
+          </div>
+          <div class="anpr-sidebar-r">
+            <div class="rp-header">Watchlist</div>
+            <div class="rp-body" id="watchlist-list"><div class="loading">Loading…</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALERTS -->
+      <div class="panel" id="panel-alerts">
+        <div class="alerts-toolbar">
+          <span class="tb-label">Alert Log</span>
+          <div class="tb-sep"></div>
+          <button class="tb-btn" onclick="markAllRead()">Mark All Read</button>
+          <button class="tb-btn" onclick="loadAlerts()">↺ Refresh</button>
+        </div>
+        <div class="alerts-list" id="alerts-list"><div class="loading">Loading alerts…</div></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="panel" id="panel-settings">
+        <div class="settings-layout">
+          <div class="settings-nav">
+            <div class="settings-nav-item active" onclick="showSettingsTab('general',this)">General</div>
+            <div class="settings-nav-item" onclick="showSettingsTab('cameras',this)">Cameras</div>
+            <div class="settings-nav-item" onclick="showSettingsTab('recording',this)">Recording</div>
+            <div class="settings-nav-item" onclick="showSettingsTab('motion',this)">Motion</div>
+            <div class="settings-nav-item" onclick="showSettingsTab('notifications',this)">Notifications</div>
+            <div class="settings-nav-item" onclick="showSettingsTab('schedules',this)">Schedules</div>
+            <div class="settings-nav-item" onclick="showSettingsTab('storage',this)">Storage</div>
+            <div class="settings-nav-item" onclick="showSettingsTab('network',this)">Network</div>
+            <div class="settings-nav-item" onclick="showSettingsTab('about',this)">About</div>
+          </div>
+          <div class="settings-content" id="settings-content"></div>
+        </div>
+      </div>
+
+    </div><!-- /.main -->
+  </div><!-- /.app-body -->
+</div><!-- /#app -->
+
+<!-- ADD CAMERA MODAL -->
+<div class="modal-overlay" id="modal-add-cam">
+  <div class="modal">
+    <div class="modal-header">Add Camera <button class="modal-close" onclick="closeModal('modal-add-cam')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label>Camera Name</label><input id="nc-name" placeholder="e.g. Front Door"></div>
+      <div class="form-row"><label>Protocol</label>
+        <select id="nc-proto"><option value="onvif">ONVIF (recommended)</option><option value="rtsp">RTSP direct</option><option value="http_mjpeg">HTTP MJPEG</option></select>
+      </div>
+      <div class="form-2col">
+        <div class="form-row"><label>IP Address</label><input id="nc-host" placeholder="192.168.1.101"></div>
+        <div class="form-row"><label>ONVIF Port</label><input id="nc-port" type="number" value="80"></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-row"><label>Username</label><input id="nc-user" value="admin"></div>
+        <div class="form-row"><label>Password</label><input id="nc-pass" type="password"></div>
+      </div>
+      <div class="form-row"><label>RTSP Path (override)</label><input id="nc-path" value="/stream1" placeholder="/stream1"></div>
+      <div class="form-row"><label>Location</label><input id="nc-loc" placeholder="e.g. Rear entrance"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-add-cam')">Cancel</button>
+      <button class="btn btn-ok" onclick="submitAddCamera()">Add Camera</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD WATCHLIST MODAL -->
+<div class="modal-overlay" id="modal-add-wl">
+  <div class="modal" style="width:380px">
+    <div class="modal-header">Add to Watchlist <button class="modal-close" onclick="closeModal('modal-add-wl')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label>Plate Number</label><input id="wl-plate" placeholder="ABC-1234" style="text-transform:uppercase"></div>
+      <div class="form-row"><label>Tag</label>
+        <select id="wl-tag"><option value="flagged">Flagged</option><option value="blocked">Blocked</option><option value="vip">VIP</option><option value="staff">Staff</option><option value="suspect">Suspect</option></select>
+      </div>
+      <div class="form-row"><label>Notes</label><input id="wl-notes" placeholder="Optional notes"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-add-wl')">Cancel</button>
+      <button class="btn btn-ok" onclick="submitWatchlist()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────────────
+let TOKEN = localStorage.getItem('ow_token') || '';
+let cameras = [];
+let recAll = false;
+let armedAll = true;
+let wsReconnectTimer = null;
+const liveEvents = [];
+const MAX_LIVE_EVENTS = 30;
+let startTime = Date.now();
+
+// ─── API helper ─────────────────────────────────────────────────────────────
+const API = async (method, path, body) => {
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`/api${path}`, opts);
+  if (r.status === 401) { doLogout(); return null; }
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  if (r.status === 204) return null;
+  return r.json();
+};
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const user = document.getElementById('l-user').value;
+  const pass = document.getElementById('l-pass').value;
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user, password: pass }),
+    });
+    if (!r.ok) throw new Error('bad');
+    const data = await r.json();
+    TOKEN = data.access_token;
+    localStorage.setItem('ow_token', TOKEN);
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    init();
+  } catch {
+    document.getElementById('l-err').style.display = 'block';
+  }
+}
+document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogout() {
+  TOKEN = ''; localStorage.removeItem('ow_token');
+  location.reload();
+}
+
+// Auto-login if token exists
+if (TOKEN) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  setTimeout(init, 0);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+async function init() {
+  await refreshCameras();
+  await loadSystemStatus();
+  connectWebSocket();
+  setInterval(loadSystemStatus, 15000);
+  setInterval(refreshCameras, 30000);
+  setInterval(updateClock, 1000);
+  showSettingsTab('general', document.querySelector('.settings-nav-item'));
+}
+
+// ─── Panel switching ──────────────────────────────────────────────────────
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`panel-${name}`).classList.add('active');
+  const btns = document.querySelectorAll('.nav-btn');
+  const map = {live:0, recordings:1, anpr:2, alerts:3, settings:4};
+  if (map[name] !== undefined) btns[map[name]].classList.add('active');
+  if (name === 'recordings') loadRecordings();
+  if (name === 'anpr') loadANPR();
+  if (name === 'alerts') loadAlerts();
+}
+
+// ─── Camera grid ──────────────────────────────────────────────────────────
+function setGrid(n) {
+  const grid = document.getElementById('cam-grid');
+  grid.className = `cam-grid g${n}`;
+  document.querySelectorAll('.grid-opt').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === `${n}×${n}`);
+  });
+}
+function setSbActive(el) {
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+async function refreshCameras() {
+  try {
+    cameras = await API('GET', '/cameras/') || [];
+    renderCameraGrid();
+    renderCameraSidebar();
+    document.getElementById('cam-count').textContent = cameras.length;
+  } catch(e) { console.error('Camera refresh failed:', e); }
+}
+
+function renderCameraGrid() {
+  const grid = document.getElementById('cam-grid');
+  grid.innerHTML = cameras.map((c, i) => {
+    const online = c.status === 'online';
+    const dotColor = online ? 'var(--green)' : 'var(--red)';
+    return `
+    <div class="cam-card ${c.is_recording?'motion-active':''}" id="camcard-${c.id}" onclick="selectCamera('${c.id}')">
+      <div class="cam-feed">
+        ${online ? `
+          <video class="cam-video" id="vid-${c.id}" autoplay muted playsinline></video>
+        ` : `
+          <div class="cam-offline-overlay">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+            <span>NO SIGNAL</span>
+          </div>
+        `}
+        <div class="cam-overlay">
+          <div class="cam-ov-top">
+            <div class="cam-ov-name">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="5"/></svg>
+              ${c.name}
+            </div>
+            ${c.is_recording ? `<div class="rec-pill"><div class="rec-dot"></div>REC</div>` : ''}
+          </div>
+          <div class="cam-ov-bot">
+            <span class="cam-ts" id="ts-${c.id}">—</span>
+            <span class="motion-badge" id="mb-${c.id}">MOTION</span>
+          </div>
+        </div>
+      </div>
+      <div class="cam-footer">
+        <div class="cam-footer-l">
+          <div class="cam-status-dot" style="background:${dotColor}"></div>
+          <span class="cam-lbl">${c.host}</span>
+          ${c.model ? `<span class="cam-lbl" style="color:var(--text3)"> · ${c.model}</span>` : ''}
+        </div>
+        <div class="cam-actions">
+          <button class="cam-act" title="Snapshot" onclick="event.stopPropagation();takeSnapshot('${c.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><circle cx="12" cy="14" r="3"/></svg>
+          </button>
+          <button class="cam-act ${c.is_recording?'recording':''}" title="Record" onclick="event.stopPropagation();toggleRecord('${c.id}',${c.is_recording})">
+            <svg viewBox="0 0 24 24" fill="${c.is_recording?'var(--red)':'none'}" stroke="${c.is_recording?'var(--red)':'currentColor'}" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg>
+          </button>
+          <button class="cam-act" title="${c.armed?'Disarm':'Arm'}" onclick="event.stopPropagation();toggleArm('${c.id}',${c.armed})">
+            <svg viewBox="0 0 24 24" fill="${c.armed?'var(--green)':'none'}" stroke="${c.armed?'var(--green)':'currentColor'}" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Start HLS streams for online cameras
+  cameras.forEach(c => {
+    if (c.status === 'online' && c.hls_url) {
+      const vid = document.getElementById(`vid-${c.id}`);
+      if (vid && !vid._hlsStarted) {
+        vid._hlsStarted = true;
+        if (Hls.isSupported()) {
+          const hls = new Hls({ lowLatencyMode: true, enableWorker: true });
+          hls.loadSource(c.hls_url);
+          hls.attachMedia(vid);
+        } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
+          vid.src = c.hls_url;
+        }
+      }
+    }
+  });
+}
+
+function renderCameraSidebar() {
+  const el = document.getElementById('cam-sidebar');
+  if (!cameras.length) { el.innerHTML = '<div class="empty" style="padding:10px 14px;font-size:11px">No cameras</div>'; return; }
+  el.innerHTML = cameras.map(c => `
+    <div class="cam-entry" onclick="selectCamera('${c.id}')">
+      <div class="cam-dot" style="background:${c.status==='online'?'var(--green)':'var(--red)'}"></div>
+      <div class="cam-entry-info">
+        <div class="cam-entry-name">${c.name}</div>
+        <div class="cam-entry-sub">${c.is_recording?'● REC':c.status}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectCamera(id) {
+  document.querySelectorAll('.cam-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById(`camcard-${id}`)?.classList.add('selected');
+}
+
+// ─── Camera actions ───────────────────────────────────────────────────────
+async function takeSnapshot(camId) {
+  try {
+    await API('POST', `/cameras/${camId}/snapshot`);
+    toast('Snapshot saved', 'success');
+  } catch(e) { toast('Snapshot failed', 'error'); }
+}
+
+async function snapshotAll() {
+  try {
+    await Promise.all(cameras.map(c => API('POST', `/cameras/${c.id}/snapshot`)));
+    toast(`Snapshot taken for ${cameras.length} cameras`, 'success');
+  } catch { toast('Some snapshots failed', 'error'); }
+}
+
+async function toggleRecord(camId, isRecording) {
+  try {
+    await API('POST', `/cameras/${camId}/record/${isRecording?'stop':'start'}`);
+    await refreshCameras();
+    toast(isRecording ? 'Recording stopped' : 'Recording started', 'info');
+  } catch(e) { toast('Failed to toggle recording', 'error'); }
+}
+
+async function toggleArm(camId, isArmed) {
+  try {
+    await API('POST', `/cameras/${camId}/${isArmed?'disarm':'arm'}`);
+    await refreshCameras();
+    toast(isArmed ? 'Camera disarmed' : 'Camera armed', 'info');
+  } catch { toast('Failed', 'error'); }
+}
+
+async function armAll() {
+  armedAll = !armedAll;
+  try {
+    await API('POST', `/cameras/${armedAll?'arm-all':'disarm-all'}`);
+    document.getElementById('arm-label').textContent = armedAll ? 'Disarm All' : 'Arm All';
+    await refreshCameras();
+    toast(armedAll ? 'All cameras armed' : 'All cameras disarmed', 'info');
+  } catch { toast('Failed', 'error'); }
+}
+
+async function toggleRecordAll() {
+  recAll = !recAll;
+  const btn = document.getElementById('rec-all-btn');
+  btn.textContent = recAll ? '⏹ Stop All' : '⏺ Record All';
+  try {
+    await Promise.all(cameras.map(c => API('POST', `/cameras/${c.id}/record/${recAll?'start':'stop'}`)));
+    await refreshCameras();
+    toast(recAll ? 'Recording all cameras' : 'Stopped all recordings', 'info');
+  } catch { toast('Some actions failed', 'error'); }
+}
+
+async function importCameras() {
+  try {
+    const r = await API('POST', '/cameras/import-yaml');
+    toast(`Imported: ${r.created} | Skipped: ${r.skipped} | Errors: ${r.errors}`, 'info');
+    await refreshCameras();
+  } catch(e) { toast('Import failed', 'error'); }
+}
+
+// ─── Add camera modal ─────────────────────────────────────────────────────
+function openAddCamera() { openModal('modal-add-cam'); }
+
+async function submitAddCamera() {
+  const body = {
+    name:       document.getElementById('nc-name').value,
+    protocol:   document.getElementById('nc-proto').value,
+    host:       document.getElementById('nc-host').value,
+    port:       parseInt(document.getElementById('nc-port').value) || 80,
+    username:   document.getElementById('nc-user').value,
+    password:   document.getElementById('nc-pass').value,
+    rtsp_path:  document.getElementById('nc-path').value,
+    location:   document.getElementById('nc-loc').value,
+  };
+  if (!body.host) { toast('IP address is required', 'error'); return; }
+  try {
+    await API('POST', '/cameras/', body);
+    closeModal('modal-add-cam');
+    toast(`Camera "${body.name}" added`, 'success');
+    await refreshCameras();
+  } catch(e) { toast(`Failed: ${e.message}`, 'error'); }
+}
+
+// ─── System status ────────────────────────────────────────────────────────
+async function loadSystemStatus() {
+  try {
+    const s = await API('GET', '/system/status');
+    if (!s) return;
+    document.getElementById('s-active').textContent   = `${s.cameras_online} / ${s.cameras_total}`;
+    document.getElementById('s-rec').textContent      = `${s.cameras_recording} cameras`;
+    document.getElementById('s-go2rtc').textContent   = s.go2rtc_available ? 'online' : 'offline';
+    document.getElementById('s-go2rtc').className     = `stat-val ${s.go2rtc_available?'g':'r'}`;
+    document.getElementById('s-disk').textContent     = `${s.disk_used_gb} GB / ${s.disk_total_gb} GB (${s.disk_percent}%)`;
+    const statusEl = document.getElementById('sys-status');
+    const textEl   = document.getElementById('sys-status-text');
+    const online   = s.cameras_online > 0 || s.go2rtc_available;
+    statusEl.className = `status-pill ${online?'online':'offline'}`;
+    textEl.textContent = `${s.cameras_online}/${s.cameras_total} LIVE`;
+  } catch {}
+}
+
+function updateClock() {
+  const now = new Date();
+  const ts = now.toTimeString().split(' ')[0];
+  cameras.forEach(c => {
+    const el = document.getElementById(`ts-${c.id}`);
+    if (el) el.textContent = ts;
+  });
+  const up = Math.floor((Date.now() - startTime) / 1000);
+  const h = String(Math.floor(up/3600)).padStart(2,'0');
+  const m = String(Math.floor((up%3600)/60)).padStart(2,'0');
+  const s = String(up%60).padStart(2,'0');
+  const el = document.getElementById('s-uptime');
+  if (el) el.textContent = `${h}:${m}:${s}`;
+}
+
+// ─── WebSocket ────────────────────────────────────────────────────────────
+function connectWebSocket() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${proto}://${location.host}/ws/events`);
+  ws.onopen = () => {
+    document.getElementById('rp-live-dot').style.color = 'var(--green)';
+    if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+  };
+  ws.onmessage = e => handleWsEvent(JSON.parse(e.data));
+  ws.onclose = () => {
+    document.getElementById('rp-live-dot').style.color = 'var(--red)';
+    wsReconnectTimer = setTimeout(connectWebSocket, 5000);
+  };
+  ws.onerror = () => ws.close();
+}
+
+function handleWsEvent(evt) {
+  const type = evt.event_type || evt.type || '';
+  const camId = evt.camera_id || '';
+
+  // Show motion badge on camera card
+  if (['motion','intrusion','person','vehicle','line_crossing'].includes(type) && camId) {
+    const mb = document.getElementById(`mb-${camId}`);
+    if (mb) {
+      mb.textContent = type.toUpperCase();
+      mb.classList.add('show');
+      setTimeout(() => mb.classList.remove('show'), 8000);
+    }
+    const card = document.getElementById(`camcard-${camId}`);
+    if (card) {
+      card.classList.add('motion-active');
+      setTimeout(() => card.classList.remove('motion-active'), 8000);
+    }
+  }
+
+  // ANPR badge
+  if (type === 'anpr') {
+    document.getElementById('anpr-badge').style.display = 'inline';
+    setTimeout(() => document.getElementById('anpr-badge').style.display = 'none', 10000);
+  }
+
+  // Add to live events
+  addLiveEvent(evt);
+}
+
+function addLiveEvent(evt) {
+  liveEvents.unshift(evt);
+  if (liveEvents.length > MAX_LIVE_EVENTS) liveEvents.pop();
+  renderLiveEvents();
+}
+
+function renderLiveEvents() {
+  const el = document.getElementById('live-events');
+  if (!liveEvents.length) { el.innerHTML = '<div class="empty">Waiting for events…</div>'; return; }
+  const icons = {
+    motion:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+    intrusion:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>`,
+    person:       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+    vehicle:      `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+    anpr:         `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 11h.01M10 11h4M18 11h.01"/></svg>`,
+    camera_status:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`,
+  };
+  const typeClass = { motion:'motion', intrusion:'motion', person:'person', vehicle:'vehicle', anpr:'anpr', camera_status:'system' };
+  el.innerHTML = liveEvents.slice(0, 15).map(ev => {
+    const t = ev.event_type || ev.type || 'system';
+    const cls = typeClass[t] || 'system';
+    const icon = icons[t] || icons.camera_status;
+    const cam  = ev.camera_name || ev.camera_id || '—';
+    const conf = ev.confidence ? ` ${Math.round(ev.confidence*100)}%` : '';
+    const plate = ev.plate_number ? ` · ${ev.plate_number}` : '';
+    return `
+      <div class="ev-item">
+        <div class="ev-icon ${cls}">${icon}</div>
+        <div class="ev-text">
+          <div class="ev-title">${t.toUpperCase()}${plate}${conf}</div>
+          <div class="ev-sub">${cam}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ─── Recordings ───────────────────────────────────────────────────────────
+async function loadRecordings() {
+  const search = document.getElementById('rec-search').value;
+  const filter = document.getElementById('rec-person').value;
+  let qs = `?limit=60`;
+  if (filter === 'person')    qs += '&has_person=true';
+  if (filter === 'vehicle')   qs += '&has_vehicle=true';
+  if (filter === 'intrusion') qs += '&has_intrusion=true';
+  try {
+    let recs = await API('GET', `/recordings/${qs}`) || [];
+    if (search) {
+      const s = search.toLowerCase();
+      recs = recs.filter(r => r.filename?.toLowerCase().includes(s) || r.camera_id?.toLowerCase().includes(s));
+    }
+    renderRecordings(recs);
+  } catch(e) { document.getElementById('rec-list').innerHTML = `<div class="empty">Error loading recordings</div>`; }
+}
+
+function renderRecordings(recs) {
+  const el = document.getElementById('rec-list');
+  if (!recs.length) { el.innerHTML = '<div class="empty">No recordings found</div>'; return; }
+  el.innerHTML = recs.map(r => {
+    const dur  = r.duration_seconds ? `${Math.round(r.duration_seconds)}s` : '—';
+    const size = r.size_bytes ? `${(r.size_bytes/1024/1024).toFixed(1)} MB` : '—';
+    const date = r.started_at ? new Date(r.started_at+'Z').toLocaleString() : '—';
+    const tags = [
+      r.has_person    ? '<span class="tag person">PERSON</span>'    : '',
+      r.has_vehicle   ? '<span class="tag vehicle">VEHICLE</span>'   : '',
+      r.has_intrusion ? '<span class="tag intrusion">INTRUSION</span>' : '',
+      (!r.has_person && !r.has_vehicle && !r.has_intrusion) ? '<span class="tag motion">MOTION</span>' : '',
+    ].join('');
+    const camName = cameras.find(c=>c.id===r.camera_id)?.name || r.camera_id;
+    return `
+      <div class="rec-item">
+        <div class="rec-thumb">
+          ${r.thumbnail_path
+            ? `<img src="/api/recordings/${r.id}/thumbnail" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'rec-thumb-placeholder\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><polygon points=\\'5 3 19 12 5 21 5 3\\'/></svg></div>'">`
+            : `<div class="rec-thumb-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>`
+          }
+        </div>
+        <div class="rec-info">
+          <div class="rec-title">${camName} — ${dur}</div>
+          <div class="rec-meta">${date} · ${size}</div>
+          <div class="rec-tags">${tags}</div>
+        </div>
+        <div class="rec-acts">
+          <button class="cam-act" title="Download" onclick="downloadRec('${r.id}','${r.filename}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </button>
+          <button class="cam-act" title="Delete" style="color:var(--red)" onclick="deleteRec('${r.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function downloadRec(id, filename) {
+  const a = document.createElement('a');
+  a.href = `/api/recordings/${id}/download`;
+  a.download = filename;
+  a.click();
+}
+
+async function deleteRec(id) {
+  if (!confirm('Delete this recording?')) return;
+  try {
+    await API('DELETE', `/recordings/${id}`);
+    toast('Recording deleted', 'info');
+    loadRecordings();
+  } catch { toast('Delete failed', 'error'); }
+}
+
+// ─── ANPR ─────────────────────────────────────────────────────────────────
+async function loadANPR() {
+  await Promise.all([loadANPRStats(), loadANPRDetections(), loadWatchlist()]);
+}
+
+async function loadANPRStats() {
+  try {
+    const s = await API('GET', '/anpr/stats');
+    document.getElementById('anpr-stats').innerHTML = `
+      <div class="anpr-stat"><div class="anpr-stat-val">${s.total_detections}</div><div class="anpr-stat-lbl">Total Detections</div></div>
+      <div class="anpr-stat"><div class="anpr-stat-val">${s.today_detections}</div><div class="anpr-stat-lbl">Today</div></div>
+      <div class="anpr-stat"><div class="anpr-stat-val" style="color:var(--red)">${s.watchlist_hits}</div><div class="anpr-stat-lbl">Watchlist Hits</div></div>
+      <div class="anpr-stat"><div class="anpr-stat-val">${s.unique_plates}</div><div class="anpr-stat-lbl">Unique Plates</div></div>
+    `;
+  } catch {}
+}
+
+async function loadANPRDetections() {
+  try {
+    const dets = await API('GET', '/anpr/detections?limit=50') || [];
+    const el = document.getElementById('anpr-plates');
+    if (!dets.length) { el.innerHTML = '<div class="empty">No plate detections yet.<br>Set camera HTTP notification URL to:<br><code style="color:var(--green);font-size:11px">/api/webhook/camera-event</code></div>'; return; }
+    el.innerHTML = dets.map(d => `
+      <div class="plate-card ${d.watchlist_match?'watchlist-hit':''}">
+        <div class="plate-number">${d.plate_number}</div>
+        <div class="plate-meta">
+          <div class="plate-cam">${d.camera_name || d.camera_id}</div>
+          <div class="plate-time">${new Date(d.created_at+'Z').toLocaleString()}</div>
+          <div class="plate-tags">
+            ${d.watchlist_match ? `<span class="wl-badge">⚠ ${d.watchlist_tag.toUpperCase()}</span>` : ''}
+            ${d.direction ? `<span class="dir-badge">${d.direction}</span>` : ''}
+            <span class="dir-badge">${Math.round(d.confidence*100)}%</span>
+          </div>
+        </div>
+        ${d.snapshot_path ? `<div class="plate-snap"><img src="/api/anpr/detections/${d.id}/snapshot" loading="lazy"></div>` : ''}
+      </div>`).join('');
+  } catch(e) { document.getElementById('anpr-plates').innerHTML = '<div class="empty">Error loading detections</div>'; }
+}
+
+async function loadWatchlist() {
+  try {
+    const wl = await API('GET', '/anpr/watchlist') || [];
+    const el = document.getElementById('watchlist-list');
+    if (!wl.length) { el.innerHTML = '<div class="empty" style="padding:12px;font-size:11px">No entries.<br>Click "+ Watchlist" to add plates.</div>'; return; }
+    el.innerHTML = wl.map(w => `
+      <div style="padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+        <div style="flex:1">
+          <div style="font-family:var(--mono);font-size:13px;font-weight:500">${w.plate_number}</div>
+          <div style="font-size:10px;color:var(--text3)">${w.tag} ${w.notes ? '· '+w.notes : ''}</div>
+        </div>
+        <button class="cam-act" onclick="removeWatchlist('${w.id}')" title="Remove">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>`).join('');
+  } catch {}
+}
+
+function openAddWatchlist() { openModal('modal-add-wl'); }
+
+async function submitWatchlist() {
+  const plate = document.getElementById('wl-plate').value.trim();
+  const tag   = document.getElementById('wl-tag').value;
+  const notes = document.getElementById('wl-notes').value;
+  if (!plate) { toast('Plate number required', 'error'); return; }
+  try {
+    await API('POST', '/anpr/watchlist', { plate_number: plate, tag, notes });
+    closeModal('modal-add-wl');
+    toast(`${plate} added to watchlist`, 'success');
+    loadWatchlist();
+  } catch(e) { toast('Failed to add', 'error'); }
+}
+
+async function removeWatchlist(id) {
+  try {
+    await API('DELETE', `/anpr/watchlist/${id}`);
+    toast('Removed from watchlist', 'info');
+    loadWatchlist();
+  } catch { toast('Failed', 'error'); }
+}
+
+// ─── Alerts ───────────────────────────────────────────────────────────────
+async function loadAlerts() {
+  try {
+    const alerts = await API('GET', '/alerts/?limit=100') || [];
+    const unread = alerts.filter(a => !a.read).length;
+    const badge  = document.getElementById('alert-badge');
+    badge.textContent = unread;
+    badge.style.display = unread ? 'inline' : 'none';
+
+    const el = document.getElementById('alerts-list');
+    if (!alerts.length) { el.innerHTML = '<div class="empty">No alerts</div>'; return; }
+    const icons = {
+      critical: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+      warning:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+      info:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`,
+    };
+    el.innerHTML = alerts.map(a => {
+      const cls = a.severity === 'critical' ? 'crit' : a.severity === 'warning' ? 'warn' : 'info';
+      return `
+        <div class="alert-card ${!a.read?'unread':''} ${cls}" onclick="markAlertRead('${a.id}')">
+          <div class="alert-icon ${cls}">${icons[a.severity]||icons.info}</div>
+          <div class="alert-body">
+            <div class="alert-title">${a.title}</div>
+            <div class="alert-desc">${a.body}</div>
+            <div class="alert-time">${new Date(a.created_at+'Z').toLocaleString()}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch { document.getElementById('alerts-list').innerHTML = '<div class="empty">Error loading alerts</div>'; }
+}
+
+async function markAlertRead(id) {
+  try { await API('POST', `/alerts/${id}/read`); loadAlerts(); } catch {}
+}
+
+async function markAllRead() {
+  try { await API('POST', '/alerts/read-all'); loadAlerts(); toast('All alerts cleared', 'info'); } catch {}
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────
+const settingsTabs = {
+  general: () => `
+    <div class="settings-section">
+      <div class="settings-h">General</div>
+      <div class="settings-sub">System-wide preferences</div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Autostart on boot</div><div class="s-row-desc">Launch services when Debian VM boots</div></div><label class="toggle"><input type="checkbox" checked><span class="tgl-slider"></span></label></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">System name</div></div><input class="s-input" value="Oeil-01"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">API port</div></div><input class="s-input" type="number" value="8090"></div>
+    </div>`,
+  cameras: () => `
+    <div class="settings-section">
+      <div class="settings-h">Camera Management</div>
+      <div class="settings-sub">Connected Ability Enterprise cameras</div>
+      ${cameras.map(c => `
+        <div class="s-row">
+          <div class="s-row-info">
+            <div class="s-row-label" style="display:flex;align-items:center;gap:6px">
+              <div style="width:7px;height:7px;border-radius:50%;background:${c.status==='online'?'var(--green)':'var(--red)'}"></div>
+              ${c.name}
+            </div>
+            <div class="s-row-desc">${c.host} · ${c.protocol} · ${c.model||'Unknown model'}</div>
+          </div>
+          <label class="toggle"><input type="checkbox" ${c.enabled?'checked':''}><span class="tgl-slider"></span></label>
+        </div>`).join('')}
+      <button class="btn btn-ok" style="margin-top:12px" onclick="openAddCamera()">+ Add Camera</button>
+      <button class="btn" style="margin-top:12px;margin-left:8px" onclick="importCameras()">Import YAML</button>
+    </div>`,
+  recording: () => `
+    <div class="settings-section">
+      <div class="settings-h">Recording</div>
+      <div class="settings-sub">Configure how footage is saved</div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Record on motion only</div><div class="s-row-desc">Save storage by recording only when movement is detected</div></div><label class="toggle"><input type="checkbox" checked><span class="tgl-slider"></span></label></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Pre-motion buffer (s)</div></div><input class="s-input" type="number" value="5"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Post-motion buffer (s)</div></div><input class="s-input" type="number" value="15"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Segment duration (s)</div><div class="s-row-desc">Max length of a single clip</div></div><input class="s-input" type="number" value="300"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Video codec</div></div><select class="s-select"><option>copy (passthrough)</option><option>H.264</option><option>H.265</option></select></div>
+    </div>`,
+  motion: () => `
+    <div class="settings-section">
+      <div class="settings-h">Motion Detection</div>
+      <div class="settings-sub">Motion is detected on-camera by Ability AI. Configure thresholds here.</div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Minimum confidence</div><div class="s-row-desc">Ignore detections below this threshold</div></div><input class="s-input" type="number" value="70" min="1" max="100"> %</div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Alert on person</div></div><label class="toggle"><input type="checkbox" checked><span class="tgl-slider"></span></label></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Alert on vehicle</div></div><label class="toggle"><input type="checkbox" checked><span class="tgl-slider"></span></label></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Alert on intrusion</div></div><label class="toggle"><input type="checkbox" checked><span class="tgl-slider"></span></label></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Alert on ANPR watchlist hit</div></div><label class="toggle"><input type="checkbox" checked><span class="tgl-slider"></span></label></div>
+    </div>`,
+  notifications: () => `
+    <div class="settings-section">
+      <div class="settings-h">Notifications</div>
+      <div class="settings-sub">Configure alert delivery channels</div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Email alerts</div></div><label class="toggle"><input type="checkbox"><span class="tgl-slider"></span></label></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">SMTP Server</div></div><input class="s-input" placeholder="smtp.gmail.com"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Alert email</div></div><input class="s-input" placeholder="you@example.com" type="email"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">HTTP Webhook URL</div><div class="s-row-desc">POST JSON on every alert</div></div><input class="s-input" placeholder="https://…"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">MQTT URL</div></div><input class="s-input" placeholder="mqtt://192.168.1.10:1883"></div>
+    </div>`,
+  schedules: () => `
+    <div class="settings-section">
+      <div class="settings-h">Arming Schedules</div>
+      <div class="settings-sub">Automatically arm/disarm cameras on a timetable. Managed via API or CLI: <code style="color:var(--green);font-size:11px">oeil-cli schedules show</code></div>
+      <div id="sched-list"><div class="loading">Loading…</div></div>
+    </div>`,
+  storage: () => `
+    <div class="settings-section">
+      <div class="settings-h">Storage</div>
+      <div class="settings-sub">Manage where recordings are saved</div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Recordings path</div></div><input class="s-input" value="/var/lib/oeil/recordings"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Max storage (GB)</div></div><input class="s-input" type="number" value="500"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Auto-delete old files</div><div class="s-row-desc">Delete oldest recordings when storage is full</div></div><label class="toggle"><input type="checkbox" checked><span class="tgl-slider"></span></label></div>
+    </div>`,
+  network: () => `
+    <div class="settings-section">
+      <div class="settings-h">Network & Remote Access</div>
+      <div class="settings-sub">Nginx proxies all services. Certbot for HTTPS.</div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">API port</div></div><input class="s-input" type="number" value="8090"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">go2rtc port</div></div><input class="s-input" type="number" value="1984"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">RTSP re-stream port</div></div><input class="s-input" type="number" value="8554"></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Enable SSL (HTTPS)</div><div class="s-row-desc">Run: certbot --nginx -d your-domain.com</div></div><label class="toggle"><input type="checkbox"><span class="tgl-slider"></span></label></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Camera webhook path</div></div><code style="font-size:11px;color:var(--green)">/api/webhook/camera-event</code></div>
+    </div>`,
+  about: () => `
+    <div class="settings-section">
+      <div class="settings-h">About Oeil</div>
+      <div class="settings-sub">Open-source video surveillance backend</div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Version</div></div><span style="font-family:var(--mono);font-size:12px;color:var(--text2)">1.1.0</span></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">License</div></div><span style="font-size:12px;color:var(--text2)">MIT</span></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Camera support</div></div><span style="font-size:12px;color:var(--text2)">Ability Enterprise ONVIF/RTSP AI</span></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">Stream engine</div></div><span style="font-size:12px;color:var(--text2)">go2rtc</span></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">API docs</div></div><a href="/api/docs" target="_blank" style="color:var(--green);font-size:12px">/api/docs</a></div>
+      <div class="s-row"><div class="s-row-info"><div class="s-row-label">CLI</div></div><code style="font-size:11px;color:var(--green)">oeil-cli status</code></div>
+    </div>`,
+};
+
+function showSettingsTab(name, el) {
+  document.querySelectorAll('.settings-nav-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const content = document.getElementById('settings-content');
+  content.innerHTML = (settingsTabs[name] || settingsTabs.general)();
+  if (name === 'schedules') loadSchedules();
+}
+
+async function loadSchedules() {
+  try {
+    const rules = await API('GET', '/schedules/') || [];
+    const el = document.getElementById('sched-list');
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    if (!rules.length) { el.innerHTML = '<div class="empty">No schedules. Use CLI: <code>oeil-cli schedules show</code></div>'; return; }
+    el.innerHTML = rules.map(r => `
+      <div class="schedule-card">
+        <div class="schedule-name">${r.name}</div>
+        <div class="schedule-detail">
+          Days: ${r.days.map(d=>days[d]).join(', ')}<br>
+          Arm: ${r.arm_time} → Disarm: ${r.disarm_time}<br>
+          Cameras: ${r.camera_ids.join(', ')}
+        </div>
+      </div>`).join('');
+  } catch { document.getElementById('sched-list').innerHTML = '<div class="empty">Error loading schedules</div>'; }
+}
+
+// ─── Modal helpers ────────────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+window.addEventListener('click', e => {
+  document.querySelectorAll('.modal-overlay.open').forEach(m => {
+    if (e.target === m) m.classList.remove('open');
+  });
+});
+
+// ─── Toast ────────────────────────────────────────────────────────────────
+function toast(msg, type='info') {
+  const container = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = `toast-msg ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+</script>
+</body>
+</html>

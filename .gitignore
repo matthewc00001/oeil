@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# Database (created at runtime)
+*.db
+*.db-shm
+*.db-wal
+
+# Recordings and snapshots (runtime data)
+/var/lib/oeil/
+recordings/
+snapshots/
+
+# Environment / secrets
+oeil.env
+*.env
+.env
+
+# Logs
+*.log
+/var/log/oeil/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build / dist
+dist/
+build/
+*.zip

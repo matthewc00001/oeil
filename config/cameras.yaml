@@ -1,0 +1,48 @@
+# Oeil — Camera Configuration
+# Add your Ability Enterprise cameras here.
+# Changes are loaded by the web UI → Settings → Cameras,
+# OR you can import this file via: oeil-cli import-cameras cameras.yaml
+#
+# Protocol options: onvif | rtsp | http_mjpeg
+#
+# For Ability Enterprise cameras:
+#   - Set protocol: onvif  (recommended — auto-discovers stream URI + events)
+#   - Default ONVIF port is 80
+#   - Default RTSP port is 554
+#   - Stream paths: /stream1 (main, H.265), /stream2 (sub, H.264)
+#   - Set the camera's HTTP notification URL to:
+#       http://<this-server>:8090/api/webhook/camera-event
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+cameras:
+  - name: "Front Door"
+    protocol: onvif
+    host: 192.168.1.101
+    port: 80
+    rtsp_port: 554
+    username: admin
+    password: "changeme"
+    rtsp_path: /stream1
+    location: "Front entrance"
+    recording_enabled: true
+    motion_enabled: true
+    armed: true
+
+  - name: "Back Yard"
+    protocol: onvif
+    host: 192.168.1.102
+    port: 80
+    rtsp_port: 554
+    username: admin
+    password: "changeme"
+    rtsp_path: /stream1
+    location: "Rear perimeter"
+    recording_enabled: true
+    motion_enabled: true
+    armed: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Add more cameras following the same pattern.
+# Ability VS15410, VS12100, VS12112 (ANPR) all work with protocol: onvif
+# ─────────────────────────────────────────────────────────────────────────────

@@ -1,0 +1,41 @@
+# go2rtc configuration for Oeil
+# Docs: https://github.com/AlexxIT/go2rtc
+
+api:
+  listen: "127.0.0.1:1984"   # Only localhost — Nginx proxies /go2rtc/
+  base_path: ""
+  static_dir: ""
+
+rtsp:
+  listen: ":8554"             # go2rtc re-streams RTSP on this port (for FFmpeg recorder)
+  username: ""
+  password: ""
+
+webrtc:
+  listen: ":8555/tcp"
+  candidates:
+    - stun:stun.l.google.com:19302
+
+log:
+  level: warn
+  output: ""
+
+# ── Camera streams are added dynamically via go2rtc REST API ─────────────────
+# Oeil's ONVIF manager calls PUT /api/streams to register each camera.
+#
+# You can also pre-define cameras here if you prefer static config:
+#
+# streams:
+#   front-door:
+#     - rtsp://admin:password@192.168.1.101:554/stream1
+#   back-yard:
+#     - rtsp://admin:password@192.168.1.102:554/stream1
+#
+# Ability Enterprise cameras typically use:
+#   ONVIF port   : 80 or 8080
+#   RTSP port    : 554
+#   Stream paths : /stream1 (main), /stream2 (sub)
+#   Codec        : H.264 or H.265
+#   AI events    : pushed via HTTP webhook or ONVIF events
+
+streams: {}
