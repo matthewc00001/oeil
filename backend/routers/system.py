@@ -24,8 +24,8 @@ async def status(user=Depends(current_user), request: Request = None):
     go2rtc_ok = await request.app.state.go2rtc.is_available()
 
     async with AsyncSessionLocal() as session:
-        result = await session.exec(select(Camera))
-        cameras = result.all()
+        result = await session.execute(select(Camera))
+        cameras = result.scalars().all()
 
     online = sum(1 for c in cameras if c.status == CameraStatus.online)
     recording = sum(1 for c in cameras if request.app.state.recorder.is_recording(c.id))

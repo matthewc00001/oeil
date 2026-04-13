@@ -66,14 +66,14 @@ class Go2RTCClient:
             return False
 
     def hls_url(self, name: str) -> str:
-        return f"{self.base_url}/api/stream.m3u8?src={name}"
+        return f"/go2rtc/api/stream.m3u8?src={name}"
 
     def webrtc_url(self, name: str) -> str:
-        return f"{self.base_url}/api/webrtc?src={name}"
+        return f"/go2rtc/api/webrtc?src={name}"
 
     def rtsp_url(self, name: str) -> str:
         host = self.base_url.split("://")[-1].split(":")[0]
         return f"rtsp://{host}:8554/{name}"
 
     def snapshot_url(self, name: str) -> str:
-        return f"{self.base_url}/api/frame.jpeg?src={name}"
+        return f"/go2rtc/api/frame.jpeg?src={name}"
