@@ -637,9 +637,14 @@ function setSbActive(el) {
 
 async function refreshCameras() {
   try {
-    cameras = await API('GET', '/cameras/') || [];
-    renderCameraGrid();
-    renderCameraSidebar();
+    const newCameras = await API('GET', '/cameras/') || [];
+    const camKey = c => ({id:c.id,status:c.status,is_recording:c.is_recording,armed:c.armed,enabled:c.enabled,name:c.name});
+    const changed = JSON.stringify(newCameras.map(camKey)) !== JSON.stringify(cameras.map(camKey));
+    cameras = newCameras;
+    if (changed) {
+      renderCameraGrid();
+      renderCameraSidebar();
+    }
     document.getElementById('cam-count').textContent = cameras.length;
   } catch(e) { console.error('Camera refresh failed:', e); }
 }
@@ -702,7 +707,7 @@ function renderCameraGrid() {
       if (vid && !vid._hlsStarted) {
         vid._hlsStarted = true;
         const iframe = document.createElement('iframe');
-          iframe.src = `/go2rtc/stream.html?src=${c.id}&mode=mse,hls`;
+          iframe.src = `/go2rtc/stream.html?src=${c.id}&mode=webrtc&background=true&visibilityCheck=false`;
           iframe.style.cssText = 'width:100%;height:100%;border:none;background:#000';
           vid.parentNode.replaceChild(iframe, vid);
       }
