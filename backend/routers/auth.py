@@ -59,3 +59,12 @@ async def login(body: LoginBody):
 @router.get("/me")
 async def me(user=Depends(current_user)):
     return {"username": user, "role": "admin"}
+
+
+def verify_token(token: str) -> str:
+    """Verify a JWT token string and return the username."""
+    try:
+        payload = jwt.decode(token, settings.OW_SECRET_KEY, algorithms=[ALGORITHM])
+        return payload.get("sub", "")
+    except JWTError:
+        return ""

@@ -27,7 +27,7 @@ logger = logging.getLogger("oeil.motion")
 # How often to grab a frame per camera (seconds)
 FRAME_INTERVAL = 0.5   # 2 fps — light on CPU
 # Minimum seconds between motion events per camera (cooldown)
-MOTION_COOLDOWN = 5.0
+MOTION_COOLDOWN = 15.0
 
 
 class CameraMotionState:
@@ -113,7 +113,7 @@ class MotionDetectorService:
             motion_pixels = cv2.countNonZero(thresh)
             total_pixels = thresh.shape[0] * thresh.shape[1]
             motion_pct = motion_pixels / total_pixels
-            motion_detected = motion_pct > 0.005  # 0.5% of frame
+            motion_detected = motion_pct > 0.02   # 2% of frame
 
         now = time.time()
         if motion_detected:

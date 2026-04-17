@@ -338,6 +338,23 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .zone-cancel-btn:hover{background:var(--bg3)}
 .zone-saved-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-size:12px;font-weight:600;padding:8px 20px;border-radius:6px;z-index:9999;display:none}
 
+
+/* ── Video Player Modal ───────────────────────────────────────── */
+.vp-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center}
+.vp-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;width:860px;max-width:97vw;display:flex;flex-direction:column;overflow:hidden}
+.vp-modal-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.vp-modal-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.vp-modal-meta{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.vp-modal-close{width:28px;height:28px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
+.vp-modal-close:hover{background:var(--red-dim);color:var(--red)}
+.vp-video-wrap{background:#000;width:100%;aspect-ratio:16/9}
+.vp-video-wrap video{width:100%;height:100%;display:block;outline:none}
+.vp-modal-foot{padding:8px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)}
+.vp-dl-btn{padding:4px 12px;border-radius:4px;border:1px solid rgba(0,230,118,.3);background:var(--green-dim);color:var(--green);font-size:11px;font-family:var(--font);cursor:pointer;font-weight:500}
+.vp-dl-btn:hover{background:rgba(0,230,118,.2)}
+.vp-del-btn{padding:4px 12px;border-radius:4px;border:1px solid rgba(255,61,87,.2);background:transparent;color:var(--red);font-size:11px;font-family:var(--font);cursor:pointer;font-weight:500}
+.vp-del-btn:hover{background:var(--red-dim)}
+
 </style>
 </head>
 <body>
@@ -1003,7 +1020,9 @@ async function loadRecordings() {
   } catch(e) { document.getElementById('rec-list').innerHTML = `<div class="empty">Error loading recordings</div>`; }
 }
 
+let _lastRecs = [];
 function renderRecordings(recs) {
+  _lastRecs = recs;
   const el = document.getElementById('rec-list');
   if (!recs.length) { el.innerHTML = '<div class="empty">No recordings found</div>'; return; }
   el.innerHTML = recs.map(r => {
@@ -1018,7 +1037,7 @@ function renderRecordings(recs) {
     ].join('');
     const camName = cameras.find(c=>c.id===r.camera_id)?.name || r.camera_id;
     return `
-      <div class="rec-item">
+      <div class="rec-item" onclick='openVideoPlayer(_lastRecs[${recs.indexOf(r)}])'>
         <div class="rec-thumb">
           ${r.thumbnail_path
             ? `<img src="/api/recordings/${r.id}/thumbnail" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'rec-thumb-placeholder\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><polygon points=\\'5 3 19 12 5 21 5 3\\'/></svg></div>'">`
@@ -1671,6 +1690,63 @@ async function saveZones() {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════
+// VIDEO PLAYER
+// ═══════════════════════════════════════════════════════
+let _vpCurrentRec = null;
+
+function openVideoPlayer(rec) {
+  _vpCurrentRec = rec;
+  const dur  = rec.duration_seconds ? `${Math.round(rec.duration_seconds)}s` : '';
+  const size = rec.size_bytes ? `${(rec.size_bytes/1024/1024).toFixed(1)} MB` : '';
+  const date = rec.started_at ? new Date(rec.started_at+'Z').toLocaleString() : '';
+  const camName = cameras.find(c=>c.id===rec.camera_id)?.name || rec.camera_id;
+
+  document.getElementById('vp-title').textContent = `${camName} — ${date}`;
+  document.getElementById('vp-meta').textContent = [dur, size].filter(Boolean).join(' · ');
+
+  const tags = [
+    rec.has_person    ? '<span class="tag person">PERSON</span>'    : '',
+    rec.has_vehicle   ? '<span class="tag vehicle">VEHICLE</span>'  : '',
+    rec.has_intrusion ? '<span class="tag intrusion">INTRUSION</span>' : '',
+    (!rec.has_person && !rec.has_vehicle && !rec.has_intrusion) ? '<span class="tag motion">MOTION</span>' : '',
+  ].join('');
+  document.getElementById('vp-tags').innerHTML = tags;
+
+  const video = document.getElementById('vp-video');
+  video.src = `/api/recordings/${rec.id}/download?token=${TOKEN}`;
+  video.load();
+  video.play().catch(()=>{});
+
+  document.getElementById('vp-modal').style.display = 'flex';
+}
+
+function closeVideoPlayer() {
+  const video = document.getElementById('vp-video');
+  video.pause();
+  video.src = '';
+  document.getElementById('vp-modal').style.display = 'none';
+  _vpCurrentRec = null;
+}
+
+function downloadCurrentRec() {
+  if (!_vpCurrentRec) return;
+  downloadRec(_vpCurrentRec.id, _vpCurrentRec.filename);
+}
+
+async function deleteCurrentRec() {
+  if (!_vpCurrentRec) return;
+  if (!confirm('Delete this recording?')) return;
+  closeVideoPlayer();
+  await deleteRec(_vpCurrentRec.id);
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeVideoPlayer();
+});
+
 </script>
 
 <div id="zone-modal" class="zone-modal-bg" style="display:none">
@@ -1708,6 +1784,33 @@ async function saveZones() {
   </div>
 </div>
 <div class="zone-saved-toast" id="zone-toast">Zones saved</div>
+
+
+<div id="vp-modal" class="vp-modal-bg" style="display:none" onclick="if(event.target===this)closeVideoPlayer()">
+  <div class="vp-modal">
+    <div class="vp-modal-head">
+      <div class="vp-modal-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span id="vp-title">Recording</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="vp-modal-meta" id="vp-meta"></span>
+        <button class="vp-modal-close" onclick="closeVideoPlayer()">&#x2715;</button>
+      </div>
+    </div>
+    <div class="vp-video-wrap">
+      <video id="vp-video" controls autoplay preload="auto">
+        Your browser does not support video playback.
+      </video>
+    </div>
+    <div class="vp-modal-foot">
+      <button class="vp-dl-btn" onclick="downloadCurrentRec()">&#x2193; Download</button>
+      <button class="vp-del-btn" onclick="deleteCurrentRec()">&#x1F5D1; Delete</button>
+      <span style="flex:1"></span>
+      <span id="vp-tags" style="display:flex;gap:4px"></span>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
