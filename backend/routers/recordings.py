@@ -6,12 +6,12 @@
 """Oeil — Recordings Router"""
 from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import Recording, get_session
-from routers.auth import current_user
+from routers.auth import current_user, verify_token, verify_token
 
 router = APIRouter()
 
@@ -32,14 +32,17 @@ async def list_recordings(
     if has_person is not None:   q = q.where(Recording.has_person == has_person)
     if has_vehicle is not None:  q = q.where(Recording.has_vehicle == has_vehicle)
     if has_intrusion is not None: q = q.where(Recording.has_intrusion == has_intrusion)
-    result = await session.exec(q)
-    return result.all()
+    result = await session.execute(q)
+    return result.scalars().all()
 
 
 @router.get("/{rec_id}/download")
-async def download(rec_id: str, session: AsyncSession = Depends(get_session), user=Depends(current_user)):
-    result = await session.exec(select(Recording).where(Recording.id == rec_id))
-    rec = result.first()
+async def download(rec_id: str, token: Optional[str] = Query(None), session: AsyncSession = Depends(get_session)):
+    # Accept token as query param (for video src) or Bearer header
+    if not token or not verify_token(token):
+        raise HTTPException(401, "Not authenticated")
+    result = await session.execute(select(Recording).where(Recording.id == rec_id))
+    rec = result.scalars().first()
     if not rec or not Path(rec.filepath).exists():
         raise HTTPException(404, "Recording file not found")
     return FileResponse(rec.filepath, media_type="video/mp4", filename=rec.filename)
@@ -47,8 +50,8 @@ async def download(rec_id: str, session: AsyncSession = Depends(get_session), us
 
 @router.get("/{rec_id}/thumbnail")
 async def thumbnail(rec_id: str, session: AsyncSession = Depends(get_session), user=Depends(current_user)):
-    result = await session.exec(select(Recording).where(Recording.id == rec_id))
-    rec = result.first()
+    result = await session.execute(select(Recording).where(Recording.id == rec_id))
+    rec = result.scalars().first()
     if not rec or not rec.thumbnail_path or not Path(rec.thumbnail_path).exists():
         raise HTTPException(404, "Thumbnail not found")
     return FileResponse(rec.thumbnail_path, media_type="image/jpeg")
@@ -56,8 +59,8 @@ async def thumbnail(rec_id: str, session: AsyncSession = Depends(get_session), u
 
 @router.delete("/{rec_id}", status_code=204)
 async def delete_recording(rec_id: str, session: AsyncSession = Depends(get_session), user=Depends(current_user)):
-    result = await session.exec(select(Recording).where(Recording.id == rec_id))
-    rec = result.first()
+    result = await session.execute(select(Recording).where(Recording.id == rec_id))
+    rec = result.scalars().first()
     if not rec:
         raise HTTPException(404)
     Path(rec.filepath).unlink(missing_ok=True)

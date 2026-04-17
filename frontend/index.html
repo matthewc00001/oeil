@@ -287,6 +287,74 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
 .loading{color:var(--text3);font-size:12px;padding:20px;text-align:center}
 .empty{color:var(--text3);font-size:12px;padding:30px;text-align:center}
+
+/* ── Zones Editor ─────────────────────────────────────────────── */
+.zone-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center}
+.zone-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;width:900px;max-width:97vw;max-height:94vh;display:flex;flex-direction:column;overflow:hidden}
+.zone-modal-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.zone-modal-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.zone-modal-title svg{width:16px;height:16px;color:var(--green)}
+.zone-modal-close{width:28px;height:28px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;line-height:1}
+.zone-modal-close:hover{background:var(--red-dim);color:var(--red);border-color:rgba(255,61,87,.3)}
+.zone-modal-body{display:flex;flex:1;overflow:hidden;min-height:0}
+.zone-canvas-wrap{flex:1;display:flex;flex-direction:column;background:#050507;position:relative;min-width:0}
+.zone-canvas-toolbar{padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.zone-canvas-wrap canvas{display:block;cursor:crosshair}
+.zone-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:10px;font-family:var(--mono);color:rgba(255,255,255,.45);pointer-events:none;background:rgba(0,0,0,.5);padding:3px 8px;border-radius:4px;white-space:nowrap}
+.zone-sidebar{width:220px;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.zone-sidebar-head{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.zone-sidebar-label{font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--text3)}
+.zone-add-btn{padding:3px 8px;border-radius:4px;border:1px solid rgba(0,230,118,.3);background:var(--green-dim);color:var(--green);font-size:11px;font-family:var(--font);cursor:pointer}
+.zone-add-btn:hover{background:rgba(0,230,118,.2)}
+.zone-list{flex:1;overflow-y:auto;padding:6px}
+.zone-item{border-radius:5px;border:1px solid var(--border);margin-bottom:5px;overflow:hidden;cursor:pointer}
+.zone-item:hover{border-color:var(--border2)}
+.zone-item.active{border-color:var(--green)}
+.zone-item-head{padding:6px 8px;display:flex;align-items:center;gap:7px}
+.zone-color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.zone-item-name{flex:1;font-size:12px;font-weight:500;color:var(--text)}
+.zone-item-acts{display:flex;gap:3px}
+.zone-act{width:20px;height:20px;border-radius:3px;border:none;background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.zone-act:hover{background:var(--bg4);color:var(--text)}
+.zone-act.del:hover{color:var(--red)}
+.zone-act svg{width:11px;height:11px}
+.zone-item-body{padding:0 8px 8px;display:none}
+.zone-item.active .zone-item-body{display:block}
+.zone-prop{margin-bottom:6px}
+.zone-prop-label{font-size:10px;color:var(--text3);margin-bottom:3px;display:flex;align-items:center;justify-content:space-between}
+.zone-prop-label span{font-family:var(--mono);color:var(--text2)}
+.zone-name-input{width:100%;height:26px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font);font-size:12px;padding:0 8px;outline:none}
+.zone-slider{width:100%;accent-color:var(--green);cursor:pointer}
+.zone-colors{display:flex;gap:5px;flex-wrap:wrap}
+.zone-color-swatch{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.12s}
+.zone-color-swatch:hover{transform:scale(1.15)}
+.zone-color-swatch.selected{border-color:#fff}
+.zone-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--text2)}
+.zone-toggle input{accent-color:var(--green)}
+.zone-sidebar-footer{padding:10px 12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.zone-save-btn{width:100%;height:32px;background:var(--green);border:none;border-radius:5px;color:#000;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer}
+.zone-save-btn:hover{background:#00ff88}
+.zone-cancel-btn{width:100%;height:28px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer}
+.zone-cancel-btn:hover{background:var(--bg3)}
+.zone-saved-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-size:12px;font-weight:600;padding:8px 20px;border-radius:6px;z-index:9999;display:none}
+
+
+/* ── Video Player Modal ───────────────────────────────────────── */
+.vp-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:600;display:flex;align-items:center;justify-content:center}
+.vp-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;width:860px;max-width:97vw;display:flex;flex-direction:column;overflow:hidden}
+.vp-modal-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.vp-modal-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.vp-modal-meta{font-size:11px;color:var(--text3);font-family:var(--mono)}
+.vp-modal-close{width:28px;height:28px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
+.vp-modal-close:hover{background:var(--red-dim);color:var(--red)}
+.vp-video-wrap{background:#000;width:100%;aspect-ratio:16/9}
+.vp-video-wrap video{width:100%;height:100%;display:block;outline:none}
+.vp-modal-foot{padding:8px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)}
+.vp-dl-btn{padding:4px 12px;border-radius:4px;border:1px solid rgba(0,230,118,.3);background:var(--green-dim);color:var(--green);font-size:11px;font-family:var(--font);cursor:pointer;font-weight:500}
+.vp-dl-btn:hover{background:rgba(0,230,118,.2)}
+.vp-del-btn{padding:4px 12px;border-radius:4px;border:1px solid rgba(255,61,87,.2);background:transparent;color:var(--red);font-size:11px;font-family:var(--font);cursor:pointer;font-weight:500}
+.vp-del-btn:hover{background:var(--red-dim)}
+
 </style>
 </head>
 <body>
@@ -637,9 +705,14 @@ function setSbActive(el) {
 
 async function refreshCameras() {
   try {
-    cameras = await API('GET', '/cameras/') || [];
-    renderCameraGrid();
-    renderCameraSidebar();
+    const newCameras = await API('GET', '/cameras/') || [];
+    const camKey = c => ({id:c.id,status:c.status,is_recording:c.is_recording,armed:c.armed,enabled:c.enabled,name:c.name});
+    const changed = JSON.stringify(newCameras.map(camKey)) !== JSON.stringify(cameras.map(camKey));
+    cameras = newCameras;
+    if (changed) {
+      renderCameraGrid();
+      renderCameraSidebar();
+    }
     document.getElementById('cam-count').textContent = cameras.length;
   } catch(e) { console.error('Camera refresh failed:', e); }
 }
@@ -681,7 +754,10 @@ function renderCameraGrid() {
           ${c.model ? `<span class="cam-lbl" style="color:var(--text3)"> · ${c.model}</span>` : ''}
         </div>
         <div class="cam-actions">
-          <button class="cam-act" title="Snapshot" onclick="event.stopPropagation();takeSnapshot('${c.id}')">
+          <button class="cam-act" title="Zones" onclick="event.stopPropagation();openZoneEditor('${c.id}','${c.name}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+              </button>
+              <button class="cam-act" title="Snapshot" onclick="event.stopPropagation();takeSnapshot('${c.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><circle cx="12" cy="14" r="3"/></svg>
           </button>
           <button class="cam-act ${c.is_recording?'recording':''}" title="Record" onclick="event.stopPropagation();toggleRecord('${c.id}',${c.is_recording})">
@@ -697,17 +773,14 @@ function renderCameraGrid() {
 
   // Start HLS streams for online cameras
   cameras.forEach(c => {
-    if (c.status === 'online' && c.hls_url) {
+    if (c.status === 'online') {
       const vid = document.getElementById(`vid-${c.id}`);
       if (vid && !vid._hlsStarted) {
         vid._hlsStarted = true;
-        if (Hls.isSupported()) {
-          const hls = new Hls({ lowLatencyMode: true, enableWorker: true });
-          hls.loadSource(c.hls_url);
-          hls.attachMedia(vid);
-        } else if (vid.canPlayType('application/vnd.apple.mpegurl')) {
-          vid.src = c.hls_url;
-        }
+        const iframe = document.createElement('iframe');
+          iframe.src = `/go2rtc/stream.html?src=${c.id}&mode=webrtc&background=true&visibilityCheck=false`;
+          iframe.style.cssText = 'width:100%;height:100%;border:none;background:#000';
+          vid.parentNode.replaceChild(iframe, vid);
       }
     }
   });
@@ -947,7 +1020,9 @@ async function loadRecordings() {
   } catch(e) { document.getElementById('rec-list').innerHTML = `<div class="empty">Error loading recordings</div>`; }
 }
 
+let _lastRecs = [];
 function renderRecordings(recs) {
+  _lastRecs = recs;
   const el = document.getElementById('rec-list');
   if (!recs.length) { el.innerHTML = '<div class="empty">No recordings found</div>'; return; }
   el.innerHTML = recs.map(r => {
@@ -962,7 +1037,7 @@ function renderRecordings(recs) {
     ].join('');
     const camName = cameras.find(c=>c.id===r.camera_id)?.name || r.camera_id;
     return `
-      <div class="rec-item">
+      <div class="rec-item" onclick='openVideoPlayer(_lastRecs[${recs.indexOf(r)}])'>
         <div class="rec-thumb">
           ${r.thumbnail_path
             ? `<img src="/api/recordings/${r.id}/thumbnail" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'rec-thumb-placeholder\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><polygon points=\\'5 3 19 12 5 21 5 3\\'/></svg></div>'">`
@@ -1260,6 +1335,482 @@ function toast(msg, type='info') {
   container.appendChild(el);
   setTimeout(() => el.remove(), 4000);
 }
+
+// ═══════════════════════════════════════════════════════
+// ZONE EDITOR
+// ═══════════════════════════════════════════════════════
+const ZONE_COLORS = ['#00e676','#ff3d57','#ffab00','#2979ff','#e040fb','#00bcd4','#ff6d00','#76ff03'];
+let zoneEditorCamId  = null;
+let zoneEditorZones  = [];
+let zoneActiveIdx    = -1;
+let zoneMode         = 'draw';
+let zoneDraftPoints  = [];
+let zoneDragInfo     = null;
+let zoneCanvasImg    = new Image();
+let zoneCanvasReady  = false;
+
+function openZoneEditor(camId, camName) {
+  zoneEditorCamId  = camId;
+  zoneDraftPoints  = [];
+  zoneMode         = 'draw';
+  document.getElementById('zone-modal-cam-name').textContent = camName + ' — Zones';
+  document.getElementById('zone-modal').style.display = 'flex';
+  const snapUrl = `/go2rtc/api/frame.jpeg?src=${camId}&ts=${Date.now()}`;
+  zoneCanvasImg = new Image();
+  zoneCanvasReady = false;
+  zoneCanvasImg.onload  = () => { zoneCanvasReady = true; renderZoneCanvas(); };
+  zoneCanvasImg.onerror = () => { zoneCanvasReady = true; renderZoneCanvas(); };
+  zoneCanvasImg.src = snapUrl;
+  authFetch(`/api/cameras/${camId}/zones`)
+    .then(r => r.json())
+    .then(zones => {
+      zoneEditorZones = zones || [];
+      zoneActiveIdx = zoneEditorZones.length > 0 ? 0 : -1;
+      renderZoneList();
+      setupZoneCanvas();
+      renderZoneCanvas();
+    })
+    .catch(() => {
+      zoneEditorZones = [];
+      zoneActiveIdx = -1;
+      renderZoneList();
+      setupZoneCanvas();
+    });
+}
+
+function closeZoneEditor() {
+  document.getElementById('zone-modal').style.display = 'none';
+  zoneEditorCamId = null;
+  zoneEditorZones = [];
+  zoneDraftPoints = [];
+  zoneActiveIdx   = -1;
+}
+
+function setZoneMode(mode) {
+  zoneMode = mode;
+  document.getElementById('ztb-draw').classList.toggle('active', mode === 'draw');
+  document.getElementById('ztb-select').classList.toggle('active', mode === 'select');
+  document.getElementById('zone-hint').textContent =
+    mode === 'draw'
+      ? 'Click to place points — double-click or click first point to close polygon'
+      : 'Click a point to drag it';
+  zoneDraftPoints = [];
+  renderZoneCanvas();
+}
+
+function addNewZone() {
+  const idx = zoneEditorZones.length;
+  zoneEditorZones.push({
+    id: 'new-' + Date.now(),
+    name: 'Zone ' + (idx + 1),
+    color: ZONE_COLORS[idx % ZONE_COLORS.length],
+    sensitivity: 50,
+    enabled: true,
+    points: [],
+  });
+  zoneActiveIdx = zoneEditorZones.length - 1;
+  zoneDraftPoints = [];
+  setZoneMode('draw');
+  renderZoneList();
+  renderZoneCanvas();
+}
+
+function selectZone(idx) {
+  zoneActiveIdx = idx;
+  zoneDraftPoints = [];
+  renderZoneList();
+  renderZoneCanvas();
+}
+
+function deleteZone(idx) {
+  zoneEditorZones.splice(idx, 1);
+  zoneActiveIdx = Math.min(zoneActiveIdx, zoneEditorZones.length - 1);
+  zoneDraftPoints = [];
+  renderZoneList();
+  renderZoneCanvas();
+}
+
+function deleteCurrentZonePoints() {
+  if (zoneActiveIdx < 0 || zoneActiveIdx >= zoneEditorZones.length) return;
+  zoneEditorZones[zoneActiveIdx].points = [];
+  zoneDraftPoints = [];
+  renderZoneCanvas();
+}
+
+function setZoneColor(idx, color) {
+  zoneEditorZones[idx].color = color;
+  renderZoneList();
+  renderZoneCanvas();
+}
+
+function renderZoneList() {
+  const el = document.getElementById('zone-list');
+  if (!el) return;
+  if (zoneEditorZones.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:11px;padding:20px">No zones yet.<br>Click &quot;+ Add&quot; to create one.</div>';
+    return;
+  }
+  el.innerHTML = zoneEditorZones.map((z, i) => `
+    <div class="zone-item${i === zoneActiveIdx ? ' active' : ''}" onclick="selectZone(${i})">
+      <div class="zone-item-head">
+        <div class="zone-color-dot" style="background:${z.color}"></div>
+        <span class="zone-item-name">${z.name}</span>
+        <div class="zone-item-acts">
+          <button class="zone-act del" onclick="event.stopPropagation();deleteZone(${i})" title="Delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="zone-item-body">
+        <div class="zone-prop">
+          <div class="zone-prop-label">Name</div>
+          <input class="zone-name-input" value="${z.name}"
+            oninput="zoneEditorZones[${i}].name=this.value;renderZoneList();renderZoneCanvas()">
+        </div>
+        <div class="zone-prop">
+          <div class="zone-prop-label">Sensitivity <span id="sens-val-${i}">${z.sensitivity}%</span></div>
+          <input type="range" class="zone-slider" min="0" max="100" value="${z.sensitivity}"
+            oninput="zoneEditorZones[${i}].sensitivity=+this.value;document.getElementById('sens-val-${i}').textContent=this.value+'%'">
+        </div>
+        <div class="zone-prop">
+          <div class="zone-prop-label">Color</div>
+          <div class="zone-colors">
+            ${ZONE_COLORS.map(c => `<div class="zone-color-swatch${z.color===c?' selected':''}" style="background:${c}" onclick="setZoneColor(${i},'${c}')"></div>`).join('')}
+          </div>
+        </div>
+        <div class="zone-prop">
+          <label class="zone-toggle">
+            <input type="checkbox" ${z.enabled ? 'checked' : ''}
+              onchange="zoneEditorZones[${i}].enabled=this.checked;renderZoneCanvas()">
+            Zone active
+          </label>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:var(--mono)">${z.points.length} points</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setupZoneCanvas() {
+  const wrap   = document.getElementById('zone-canvas-wrap');
+  const canvas = document.getElementById('zone-canvas');
+  if (!canvas || !wrap) return;
+  const tb = wrap.querySelector('.zone-canvas-toolbar');
+  const tbH = tb ? tb.offsetHeight : 38;
+  canvas.width  = wrap.clientWidth;
+  canvas.height = wrap.clientHeight - tbH;
+  canvas.onclick     = onZoneCanvasClick;
+  canvas.ondblclick  = onZoneCanvasDblClick;
+  canvas.onmousemove = onZoneCanvasMouseMove;
+  canvas.onmousedown = onZoneCanvasMouseDown;
+  canvas.onmouseup   = () => { zoneDragInfo = null; };
+}
+
+function canvasCoords(canvas, e) {
+  const r = canvas.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height];
+}
+
+function renderZoneCanvas() {
+  const canvas = document.getElementById('zone-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  if (zoneCanvasReady && zoneCanvasImg.naturalWidth > 0) {
+    ctx.drawImage(zoneCanvasImg, 0, 0, W, H);
+  } else {
+    ctx.fillStyle = '#050507';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = '13px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Loading snapshot…', W/2, H/2);
+  }
+  zoneEditorZones.forEach((zone, zi) => {
+    if (!zone.points || zone.points.length < 2) return;
+    const pts = zone.points.map(([nx,ny]) => [nx*W, ny*H]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    pts.slice(1).forEach(([x,y]) => ctx.lineTo(x, y));
+    ctx.closePath();
+    ctx.fillStyle = zone.color + (zone.enabled ? '40' : '18');
+    ctx.fill();
+    ctx.strokeStyle = zi === zoneActiveIdx ? zone.color : zone.color + 'aa';
+    ctx.lineWidth = zi === zoneActiveIdx ? 2 : 1.5;
+    ctx.setLineDash(zone.enabled ? [] : [5,4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    pts.forEach(([x,y]) => {
+      ctx.beginPath();
+      ctx.arc(x, y, zi === zoneActiveIdx ? 5 : 3, 0, Math.PI*2);
+      ctx.fillStyle = zone.color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+    const cx = pts.reduce((s,[x])=>s+x,0)/pts.length;
+    const cy = pts.reduce((s,[,y])=>s+y,0)/pts.length;
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = '#fff';
+    ctx.fillText(zone.name, cx, cy+4);
+    ctx.shadowBlur = 0;
+  });
+  if (zoneMode === 'draw' && zoneDraftPoints.length > 0) {
+    const color = zoneActiveIdx >= 0 && zoneActiveIdx < zoneEditorZones.length
+      ? zoneEditorZones[zoneActiveIdx].color : '#00e676';
+    const pts = zoneDraftPoints.map(([nx,ny]) => [nx*W, ny*H]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    pts.slice(1).forEach(([x,y]) => ctx.lineTo(x, y));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4,3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(pts[0][0], pts[0][1], 7, 0, Math.PI*2);
+    ctx.fillStyle = color + '44';
+    ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    pts.forEach(([x,y],i) => {
+      if (i===0) return;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI*2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    });
+  }
+}
+
+function onZoneCanvasClick(e) {
+  if (e.detail >= 2) return;
+  const canvas = document.getElementById('zone-canvas');
+  const [nx, ny] = canvasCoords(canvas, e);
+  if (zoneMode === 'draw') {
+    if (zoneActiveIdx < 0 || zoneActiveIdx >= zoneEditorZones.length) { addNewZone(); }
+    if (zoneDraftPoints.length >= 3) {
+      const [fx, fy] = zoneDraftPoints[0];
+      const W = canvas.width, H = canvas.height;
+      const dx = (nx-fx)*W, dy = (ny-fy)*H;
+      if (dx*dx+dy*dy < 100) { closeDraftPolygon(); return; }
+    }
+    zoneDraftPoints.push([nx, ny]);
+    renderZoneCanvas();
+  }
+}
+
+function onZoneCanvasDblClick(e) {
+  if (zoneMode === 'draw' && zoneDraftPoints.length >= 3) closeDraftPolygon();
+}
+
+function closeDraftPolygon() {
+  if (zoneActiveIdx < 0 || zoneActiveIdx >= zoneEditorZones.length) return;
+  zoneEditorZones[zoneActiveIdx].points = [...zoneDraftPoints];
+  zoneDraftPoints = [];
+  renderZoneList();
+  renderZoneCanvas();
+}
+
+function onZoneCanvasMouseMove(e) {
+  const canvas = document.getElementById('zone-canvas');
+  const [nx, ny] = canvasCoords(canvas, e);
+  if (zoneDragInfo) {
+    const z = zoneEditorZones[zoneDragInfo.zoneIdx];
+    if (z && z.points[zoneDragInfo.ptIdx]) {
+      z.points[zoneDragInfo.ptIdx] = [nx, ny];
+      renderZoneCanvas();
+    }
+    return;
+  }
+  if (zoneMode === 'draw' && zoneDraftPoints.length > 0) {
+    renderZoneCanvas();
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const last = zoneDraftPoints[zoneDraftPoints.length-1];
+    const color = zoneActiveIdx >= 0 && zoneActiveIdx < zoneEditorZones.length
+      ? zoneEditorZones[zoneActiveIdx].color : '#00e676';
+    ctx.beginPath();
+    ctx.moveTo(last[0]*W, last[1]*H);
+    ctx.lineTo(nx*W, ny*H);
+    ctx.strokeStyle = color + 'aa';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3,3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function onZoneCanvasMouseDown(e) {
+  if (zoneMode !== 'select') return;
+  const canvas = document.getElementById('zone-canvas');
+  const [nx, ny] = canvasCoords(canvas, e);
+  const W = canvas.width, H = canvas.height;
+  for (let zi = 0; zi < zoneEditorZones.length; zi++) {
+    const z = zoneEditorZones[zi];
+    for (let pi = 0; pi < z.points.length; pi++) {
+      const [px, py] = z.points[pi];
+      const dx = (nx-px)*W, dy = (ny-py)*H;
+      if (dx*dx+dy*dy < 150) {
+        zoneDragInfo = {zoneIdx: zi, ptIdx: pi};
+        zoneActiveIdx = zi;
+        renderZoneList();
+        return;
+      }
+    }
+  }
+}
+
+async function saveZones() {
+  if (!zoneEditorCamId) return;
+  if (zoneDraftPoints.length >= 3 && zoneActiveIdx >= 0) {
+    zoneEditorZones[zoneActiveIdx].points = [...zoneDraftPoints];
+    zoneDraftPoints = [];
+  }
+  try {
+    const resp = await authFetch(`/api/cameras/${zoneEditorCamId}/zones`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({zones: zoneEditorZones}),
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    const toast = document.getElementById('zone-toast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    renderZoneList();
+    renderZoneCanvas();
+  } catch(err) {
+    alert('Error saving zones: ' + err.message);
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════
+// VIDEO PLAYER
+// ═══════════════════════════════════════════════════════
+let _vpCurrentRec = null;
+
+function openVideoPlayer(rec) {
+  _vpCurrentRec = rec;
+  const dur  = rec.duration_seconds ? `${Math.round(rec.duration_seconds)}s` : '';
+  const size = rec.size_bytes ? `${(rec.size_bytes/1024/1024).toFixed(1)} MB` : '';
+  const date = rec.started_at ? new Date(rec.started_at+'Z').toLocaleString() : '';
+  const camName = cameras.find(c=>c.id===rec.camera_id)?.name || rec.camera_id;
+
+  document.getElementById('vp-title').textContent = `${camName} — ${date}`;
+  document.getElementById('vp-meta').textContent = [dur, size].filter(Boolean).join(' · ');
+
+  const tags = [
+    rec.has_person    ? '<span class="tag person">PERSON</span>'    : '',
+    rec.has_vehicle   ? '<span class="tag vehicle">VEHICLE</span>'  : '',
+    rec.has_intrusion ? '<span class="tag intrusion">INTRUSION</span>' : '',
+    (!rec.has_person && !rec.has_vehicle && !rec.has_intrusion) ? '<span class="tag motion">MOTION</span>' : '',
+  ].join('');
+  document.getElementById('vp-tags').innerHTML = tags;
+
+  const video = document.getElementById('vp-video');
+  video.src = `/api/recordings/${rec.id}/download?token=${TOKEN}`;
+  video.load();
+  video.play().catch(()=>{});
+
+  document.getElementById('vp-modal').style.display = 'flex';
+}
+
+function closeVideoPlayer() {
+  const video = document.getElementById('vp-video');
+  video.pause();
+  video.src = '';
+  document.getElementById('vp-modal').style.display = 'none';
+  _vpCurrentRec = null;
+}
+
+function downloadCurrentRec() {
+  if (!_vpCurrentRec) return;
+  downloadRec(_vpCurrentRec.id, _vpCurrentRec.filename);
+}
+
+async function deleteCurrentRec() {
+  if (!_vpCurrentRec) return;
+  if (!confirm('Delete this recording?')) return;
+  closeVideoPlayer();
+  await deleteRec(_vpCurrentRec.id);
+}
+
+// Close on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeVideoPlayer();
+});
+
 </script>
+
+<div id="zone-modal" class="zone-modal-bg" style="display:none">
+  <div class="zone-modal">
+    <div class="zone-modal-head">
+      <div class="zone-modal-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        <span id="zone-modal-cam-name">Motion Detection Zones</span>
+      </div>
+      <button class="zone-modal-close" onclick="closeZoneEditor()">&#x2715;</button>
+    </div>
+    <div class="zone-modal-body">
+      <div class="zone-canvas-wrap" id="zone-canvas-wrap">
+        <div class="zone-canvas-toolbar">
+          <span style="font-size:11px;color:var(--text2)">Mode:</span>
+          <button id="ztb-draw" class="grid-opt active" onclick="setZoneMode('draw')">Draw</button>
+          <button id="ztb-select" class="grid-opt" onclick="setZoneMode('select')">Select</button>
+          <button class="grid-opt" onclick="deleteCurrentZonePoints()" style="color:var(--red)">Clear Points</button>
+        </div>
+        <canvas id="zone-canvas"></canvas>
+        <div class="zone-hint" id="zone-hint">Click to place points — double-click or click first point to close polygon</div>
+      </div>
+      <div class="zone-sidebar">
+        <div class="zone-sidebar-head">
+          <span class="zone-sidebar-label">Zones</span>
+          <button class="zone-add-btn" onclick="addNewZone()">+ Add</button>
+        </div>
+        <div class="zone-list" id="zone-list"></div>
+        <div class="zone-sidebar-footer">
+          <button class="zone-save-btn" onclick="saveZones()">Save Zones</button>
+          <button class="zone-cancel-btn" onclick="closeZoneEditor()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="zone-saved-toast" id="zone-toast">Zones saved</div>
+
+
+<div id="vp-modal" class="vp-modal-bg" style="display:none" onclick="if(event.target===this)closeVideoPlayer()">
+  <div class="vp-modal">
+    <div class="vp-modal-head">
+      <div class="vp-modal-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span id="vp-title">Recording</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="vp-modal-meta" id="vp-meta"></span>
+        <button class="vp-modal-close" onclick="closeVideoPlayer()">&#x2715;</button>
+      </div>
+    </div>
+    <div class="vp-video-wrap">
+      <video id="vp-video" controls autoplay preload="auto">
+        Your browser does not support video playback.
+      </video>
+    </div>
+    <div class="vp-modal-foot">
+      <button class="vp-dl-btn" onclick="downloadCurrentRec()">&#x2193; Download</button>
+      <button class="vp-del-btn" onclick="deleteCurrentRec()">&#x1F5D1; Delete</button>
+      <span style="flex:1"></span>
+      <span id="vp-tags" style="display:flex;gap:4px"></span>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

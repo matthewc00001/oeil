@@ -22,12 +22,13 @@ from fastapi.responses import FileResponse
 
 from config import settings
 from database import init_db, get_session
-from routers import cameras, recordings, events, alerts, auth, system, streams
+from routers import cameras, recordings, events, alerts, auth, system, streams, zones
 from services.onvif_manager import ONVIFManager
 from services.recorder import RecorderService
 from services.event_bus import EventBus
 from services.go2rtc import Go2RTCClient
 from services.notification import NotificationService
+from services.motion_detector import MotionDetectorService
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,11 +53,14 @@ async def lifespan(app: FastAPI):
 
     await app.state.onvif.start()
     await app.state.recorder.start()
+    app.state.motion = MotionDetectorService(settings, app.state.event_bus)
+    await app.state.motion.start()
 
     logger.info("All services started — Oeil ready")
     yield
 
     logger.info("Oeil shutting down…")
+    await app.state.motion.stop()
     await app.state.recorder.stop()
     await app.state.onvif.stop()
 
@@ -86,6 +90,7 @@ app.include_router(events.router,     prefix="/api/events",     tags=["events"])
 app.include_router(alerts.router,     prefix="/api/alerts",     tags=["alerts"])
 app.include_router(streams.router,    prefix="/api/streams",    tags=["streams"])
 app.include_router(system.router,     prefix="/api/system",     tags=["system"])
+app.include_router(zones.router,     prefix="/api/cameras",   tags=["zones"])
 
 
 # ── WebSocket: live event push ────────────────────────────────────────────────

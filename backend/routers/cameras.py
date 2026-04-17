@@ -53,20 +53,20 @@ async def list_cameras(
     user=Depends(current_user),
     request: Request = None,
 ):
-    result = await session.exec(select(Camera))
-    cameras = result.all()
+    result = await session.execute(select(Camera))
+    cameras = result.scalars().all()
     go2rtc = request.app.state.go2rtc
     recorder = request.app.state.recorder
     out = []
     for c in cameras:
-        d = c.dict()
+        d = c.model_dump()
         d["hls_url"]      = go2rtc.hls_url(c.id)
         d["webrtc_url"]   = go2rtc.webrtc_url(c.id)
         d["snapshot_url"] = go2rtc.snapshot_url(c.id)
         d["rtsp_url"]     = go2rtc.rtsp_url(c.id)
         d["is_recording"] = recorder.is_recording(c.id)
         # Latest snapshot from disk
-        snap = request.app.state.snapshots.latest_snapshot(c.id)
+        snap = None
         d["latest_snapshot"] = f"/snapshots/{c.id}/{snap.name}" if snap else None
         out.append(d)
     return out
@@ -93,8 +93,8 @@ async def get_camera(
     session: AsyncSession = Depends(get_session),
     user=Depends(current_user),
 ):
-    result = await session.exec(select(Camera).where(Camera.id == camera_id))
-    cam = result.first()
+    result = await session.execute(select(Camera).where(Camera.id == camera_id))
+    cam = result.scalars().first()
     if not cam:
         raise HTTPException(404, "Camera not found")
     return cam
@@ -107,8 +107,8 @@ async def update_camera(
     session: AsyncSession = Depends(get_session),
     user=Depends(current_user),
 ):
-    result = await session.exec(select(Camera).where(Camera.id == camera_id))
-    cam = result.first()
+    result = await session.execute(select(Camera).where(Camera.id == camera_id))
+    cam = result.scalars().first()
     if not cam:
         raise HTTPException(404, "Camera not found")
     for k, v in body.dict(exclude_none=True).items():
@@ -124,8 +124,8 @@ async def delete_camera(
     user=Depends(current_user),
     request: Request = None,
 ):
-    result = await session.exec(select(Camera).where(Camera.id == camera_id))
-    cam = result.first()
+    result = await session.execute(select(Camera).where(Camera.id == camera_id))
+    cam = result.scalars().first()
     if not cam:
         raise HTTPException(404, "Camera not found")
     await request.app.state.onvif.remove_camera(camera_id)
@@ -135,8 +135,8 @@ async def delete_camera(
 
 @router.post("/{camera_id}/arm")
 async def arm(camera_id: str, session: AsyncSession = Depends(get_session), user=Depends(current_user)):
-    result = await session.exec(select(Camera).where(Camera.id == camera_id))
-    cam = result.first()
+    result = await session.execute(select(Camera).where(Camera.id == camera_id))
+    cam = result.scalars().first()
     if cam:
         cam.armed = True
         await session.commit()
@@ -145,8 +145,8 @@ async def arm(camera_id: str, session: AsyncSession = Depends(get_session), user
 
 @router.post("/{camera_id}/disarm")
 async def disarm(camera_id: str, session: AsyncSession = Depends(get_session), user=Depends(current_user)):
-    result = await session.exec(select(Camera).where(Camera.id == camera_id))
-    cam = result.first()
+    result = await session.execute(select(Camera).where(Camera.id == camera_id))
+    cam = result.scalars().first()
     if cam:
         cam.armed = False
         await session.commit()
@@ -175,7 +175,7 @@ async def stop_rec(camera_id: str, user=Depends(current_user), request: Request 
 
 @router.post("/arm-all")
 async def arm_all(session: AsyncSession = Depends(get_session), user=Depends(current_user)):
-    result = await session.exec(select(Camera))
+    result = await session.execute(select(Camera))
     for cam in result.all():
         cam.armed = True
     await session.commit()
@@ -184,7 +184,7 @@ async def arm_all(session: AsyncSession = Depends(get_session), user=Depends(cur
 
 @router.post("/disarm-all")
 async def disarm_all(session: AsyncSession = Depends(get_session), user=Depends(current_user)):
-    result = await session.exec(select(Camera))
+    result = await session.execute(select(Camera))
     for cam in result.all():
         cam.armed = False
     await session.commit()

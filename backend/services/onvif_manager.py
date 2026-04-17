@@ -17,7 +17,7 @@ from datetime import datetime
 from typing import Dict, Optional
 
 import aiohttp
-from wsdiscovery import WSDiscovery
+#from wsdiscovery import WSDiscovery
 from onvif import ONVIFCamera
 
 from database import Camera, CameraProtocol, CameraStatus, Event, EventType, AsyncSessionLocal
@@ -50,7 +50,7 @@ class ONVIFManager:
     async def start(self):
         self._running = True
         self._tasks.append(asyncio.create_task(self._load_cameras()))
-        self._tasks.append(asyncio.create_task(self._discovery_loop()))
+        #self._tasks.append(asyncio.create_task(self._discovery_loop()))
         logger.info("ONVIF manager started")
 
     async def stop(self):
@@ -69,8 +69,8 @@ class ONVIFManager:
         """Load cameras from DB and connect to each."""
         async with AsyncSessionLocal() as session:
             from sqlmodel import select
-            result = await session.exec(select(Camera).where(Camera.enabled == True))
-            cameras = result.all()
+            result = await session.execute(select(Camera).where(Camera.enabled == True))
+            cameras = result.scalars().all()
 
         for cam in cameras:
             await self._connect_camera(cam)
@@ -137,8 +137,8 @@ class ONVIFManager:
             )
             async with AsyncSessionLocal() as session:
                 from sqlmodel import select
-                result = await session.exec(select(Camera).where(Camera.id == cam.id))
-                db_cam = result.first()
+                result = await session.execute(select(Camera).where(Camera.id == cam.id))
+                db_cam = result.scalars().first()
                 if db_cam:
                     db_cam.manufacturer = getattr(info, "Manufacturer", "")
                     db_cam.model = getattr(info, "Model", "")
@@ -307,8 +307,8 @@ class ONVIFManager:
     async def _update_camera_status(self, camera_id: str, status: CameraStatus):
         async with AsyncSessionLocal() as session:
             from sqlmodel import select
-            result = await session.exec(select(Camera).where(Camera.id == camera_id))
-            cam = result.first()
+            result = await session.execute(select(Camera).where(Camera.id == camera_id))
+            cam = result.scalars().first()
             if cam:
                 cam.status = status
                 cam.last_seen = datetime.utcnow() if status == CameraStatus.online else cam.last_seen
