@@ -823,7 +823,7 @@ function renderCameraGrid() {
       if (vid && !vid._hlsStarted) {
         vid._hlsStarted = true;
         const iframe = document.createElement('iframe');
-          iframe.src = `/go2rtc/stream.html?src=${c.id}&mode=webrtc&background=true&visibilityCheck=false`;
+          iframe.src = `/go2rtc/stream.html?src=${c.id}-sub&mode=webrtc&background=true&visibilityCheck=false`;
           iframe.style.cssText = 'width:100%;height:100%;border:none;background:#000';
           vid.parentNode.replaceChild(iframe, vid);
       }
@@ -846,8 +846,24 @@ function renderCameraSidebar() {
 }
 
 function selectCamera(id) {
-  document.querySelectorAll('.cam-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById(`camcard-${id}`)?.classList.add('selected');
+  document.querySelectorAll('.cam-card').forEach(c => {
+    c.classList.remove('selected');
+    // Switch all non-selected cameras back to sub-stream
+    const iframe = c.querySelector('iframe');
+    if (iframe) {
+      const camId = c.id.replace('camcard-', '');
+      if (camId !== id) {
+        iframe.src = `/go2rtc/stream.html?src=${camId}-sub&mode=webrtc&background=true&visibilityCheck=false`;
+      }
+    }
+  });
+  const card = document.getElementById(`camcard-${id}`);
+  card?.classList.add('selected');
+  // Switch selected camera to full main stream
+  const iframe = card?.querySelector('iframe');
+  if (iframe) {
+    iframe.src = `/go2rtc/stream.html?src=${id}&mode=webrtc&background=true&visibilityCheck=false`;
+  }
 }
 
 // ─── Camera actions ───────────────────────────────────────────────────────
