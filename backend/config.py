@@ -59,4 +59,13 @@ class Settings(BaseSettings):
     OW_TOKEN_EXPIRE_MINUTES: int = 60 * 8
 
 
-settings = Settings()
+def _make_settings():
+    s = Settings()
+    # Decrypt encrypted fields
+    for field in ['OW_SMTP_PASS', 'OW_ADMIN_PASS', 'OW_SECRET_KEY']:
+        val = getattr(s, field, '')
+        if val and str(val).startswith('enc:'):
+            object.__setattr__(s, field, _decrypt_if_needed(val))
+    return s
+
+settings = _make_settings()
