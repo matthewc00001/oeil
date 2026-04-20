@@ -355,6 +355,31 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .vp-del-btn{padding:4px 12px;border-radius:4px;border:1px solid rgba(255,61,87,.2);background:transparent;color:var(--red);font-size:11px;font-family:var(--font);cursor:pointer;font-weight:500}
 .vp-del-btn:hover{background:var(--red-dim)}
 
+
+/* ── Timeline ─────────────────────────────────────────────────── */
+.tl-wrap{flex:1;overflow-y:auto;padding:14px}
+.tl-toolbar{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.tl-date{height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font);font-size:12px;padding:0 8px;outline:none}
+.tl-body{display:flex;flex-direction:column;gap:6px;padding:14px}
+.tl-cam-row{display:flex;align-items:center;gap:8px}
+.tl-cam-label{width:120px;font-size:11px;color:var(--text2);text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-track{flex:1;height:36px;background:var(--bg3);border-radius:4px;position:relative;cursor:pointer;border:1px solid var(--border)}
+.tl-block{position:absolute;height:100%;border-radius:3px;cursor:pointer;transition:.1s;opacity:.85}
+.tl-block:hover{opacity:1;transform:scaleY(1.1)}
+.tl-block.person{background:var(--red)}
+.tl-block.vehicle{background:var(--amber)}
+.tl-block.motion{background:var(--blue)}
+.tl-block.event{background:var(--green)}
+.tl-hours{display:flex;margin-left:128px;margin-bottom:4px}
+.tl-hour{flex:1;font-size:9px;font-family:var(--mono);color:var(--text3);text-align:center}
+.tl-legend{display:flex;gap:12px;margin-left:128px;margin-top:8px}
+.tl-leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)}
+.tl-leg-dot{width:10px;height:10px;border-radius:2px}
+.tl-empty{text-align:center;color:var(--text3);padding:40px;font-size:13px}
+.tl-tooltip{position:fixed;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;font-size:11px;pointer-events:none;z-index:999;display:none;max-width:220px}
+.tl-tooltip .tt-title{font-weight:600;color:var(--text);margin-bottom:4px}
+.tl-tooltip .tt-line{color:var(--text2);line-height:1.6}
+
 </style>
 </head>
 <body>
@@ -393,6 +418,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <div class="topbar-nav">
       <button class="nav-btn active" onclick="showPanel('live')">Live View</button>
       <button class="nav-btn" onclick="showPanel('recordings')">Recordings</button>
+      <button class="nav-btn" onclick="showPanel('timeline');loadTimeline()">Timeline</button>
       <button class="nav-btn" onclick="showPanel('anpr')">ANPR <span class="nav-badge" id="anpr-badge" style="display:none">!</span></button>
       <button class="nav-btn" onclick="showPanel('alerts')">Alerts <span class="nav-badge" id="alert-badge" style="display:none">0</span></button>
       <button class="nav-btn" onclick="showPanel('settings')">Settings</button>
@@ -505,27 +531,46 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="rec-list" id="rec-list"><div class="loading">Loading recordings…</div></div>
       </div>
 
-      <!-- ANPR -->
-      <div class="panel" id="panel-anpr">
-        <div class="live-toolbar">
-          <span class="tb-label">ANPR — License Plate Recognition</span>
+      
+      <!-- Timeline Panel -->
+      <div class="panel" id="panel-timeline">
+        <div class="tl-toolbar">
+          <span class="tb-label">Timeline</span>
+          <input type="date" class="tl-date" id="tl-date">
+          <button class="tb-btn" onclick="loadTimeline()">↺ Refresh</button>
           <div class="tb-sep"></div>
-          <button class="tb-btn" onclick="openAddWatchlist()">+ Watchlist</button>
-          <button class="tb-btn" onclick="loadANPR()">↺ Refresh</button>
+          <span style="font-size:11px;color:var(--text3)">Click a block to play recording</span>
         </div>
-        <div class="anpr-layout">
-          <div class="anpr-main">
-            <div class="anpr-stats-row" id="anpr-stats"></div>
-            <div id="anpr-plates"><div class="loading">Loading detections…</div></div>
-          </div>
-          <div class="anpr-sidebar-r">
-            <div class="rp-header">Watchlist</div>
-            <div class="rp-body" id="watchlist-list"><div class="loading">Loading…</div></div>
+        <div class="tl-wrap">
+          <div id="tl-hours" class="tl-hours"></div>
+          <div id="tl-body" class="tl-body"></div>
+          <div id="tl-legend" class="tl-legend">
+            <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--red)"></div>Person</div>
+            <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--amber)"></div>Vehicle</div>
+            <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--blue)"></div>Motion</div>
+            <div class="tl-leg-item"><div class="tl-leg-dot" style="background:var(--green)"></div>Event</div>
           </div>
         </div>
       </div>
+<div class="tl-tooltip" id="tl-tooltip"></div>
 
-      <!-- ALERTS -->
+      <!-- ANPR -->
+      <div class="panel" id="panel-anpr">
+        <div class="tl-toolbar">
+          <span class="tb-label">ANPR — Automatic Number Plate Recognition</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60%;gap:16px;color:var(--text2);text-align:center;padding:40px">
+          <div style="font-size:48px">🚗</div>
+          <div style="font-size:18px;font-weight:600;color:var(--text)">ANPR — Fonctionnalité à venir</div>
+          <div style="font-size:13px;max-width:500px;line-height:1.8">
+            La reconnaissance automatique de plaques d'immatriculation nécessite une caméra dédiée
+            positionnée à faible angle et à proximité immédiate du point d'entrée des véhicules.<br><br>
+            Les caméras actuelles sont optimisées pour la surveillance grand angle et ne peuvent pas
+            capturer les plaques d'immatriculation avec la résolution nécessaire.<br><br>
+            <span style="color:var(--amber)">⚠ Une caméra ANPR dédiée doit être installée à l'entrée pour activer cette fonctionnalité.</span>
+          </div>
+        </div>
+      </div>
       <div class="panel" id="panel-alerts">
         <div class="alerts-toolbar">
           <span class="tb-label">Alert Log</span>
@@ -683,7 +728,7 @@ function showPanel(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`panel-${name}`).classList.add('active');
   const btns = document.querySelectorAll('.nav-btn');
-  const map = {live:0, recordings:1, anpr:2, alerts:3, settings:4};
+  const map = {live:0, recordings:1, timeline:2, anpr:3, alerts:4, settings:5};
   if (map[name] !== undefined) btns[map[name]].classList.add('active');
   if (name === 'recordings') loadRecordings();
   if (name === 'anpr') loadANPR();
@@ -1741,6 +1786,55 @@ async function deleteCurrentRec() {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeVideoPlayer();
 });
+
+// TIMELINE
+let _tlRecs=[];
+async function loadTimeline(){
+  const dateEl=document.getElementById('tl-date');
+  if(!dateEl.value) dateEl.value=new Date().toISOString().split('T')[0];
+  const date=dateEl.value;
+  try{
+    const recs=await API('GET','/recordings/?limit=500')||[];
+    _tlRecs=recs.filter(r=>r.started_at&&r.started_at.startsWith(date));
+    renderTimeline(_tlRecs,date);
+  }catch(e){
+    document.getElementById('tl-body').innerHTML='<div class="tl-empty">Erreur de chargement</div>';
+  }
+}
+function renderTimeline(recs,date){
+  const hoursEl=document.getElementById('tl-hours');
+  const bodyEl=document.getElementById('tl-body');
+  hoursEl.innerHTML=Array.from({length:24},(_,h)=>`<div class="tl-hour">${String(h).padStart(2,'0')}h</div>`).join('');
+  if(!recs.length){bodyEl.innerHTML='<div class="tl-empty">Aucun enregistrement pour cette date</div>';return;}
+  const byCam={};
+  for(const r of recs){if(!byCam[r.camera_id])byCam[r.camera_id]=[];byCam[r.camera_id].push(r);}
+  const dayStart=new Date(date+'T00:00:00').getTime();
+  const dayMs=24*3600*1000;
+  bodyEl.innerHTML=Object.entries(byCam).map(([camId,camRecs])=>{
+    const camName=(window.cameras||[]).find(c=>c.id===camId)?.name||camId.slice(0,8);
+    const blocks=camRecs.map(r=>{
+      const s=new Date(r.started_at).getTime();
+      const e=r.ended_at?new Date(r.ended_at).getTime():s+15000;
+      const left=Math.max(0,(s-dayStart)/dayMs*100);
+      const w=Math.max(0.3,(e-s)/dayMs*100);
+      const cls=r.has_person?'person':r.has_vehicle?'vehicle':r.trigger==='event'?'event':'motion';
+      const ts=new Date(s).toLocaleTimeString();
+      const dur=r.duration_seconds?Math.round(r.duration_seconds)+'s':'?';
+      const sz=r.size_bytes?(r.size_bytes/1024/1024).toFixed(1)+'MB':'';
+      const type=r.has_person?'Person':r.has_vehicle?'Vehicle':'Motion';
+      return `<div class="tl-block ${cls}" style="left:${left}%;width:${w}%" onclick="openVideoPlayer(_tlRecs.find(x=>x.id==='${r.id}'))" onmouseenter="showTlTooltip(event,'${camName}','${ts}','${dur}','${sz}','${type}')" onmouseleave="hideTlTooltip()"></div>`;
+    }).join('');
+    return `<div class="tl-cam-row"><div class="tl-cam-label" title="${camName}">${camName}</div><div class="tl-track">${blocks}</div></div>`;
+  }).join('');
+}
+function showTlTooltip(e,cam,time,dur,size,type){
+  const tt=document.getElementById('tl-tooltip');
+  tt.innerHTML=`<div class="tt-title">${cam}</div><div class="tt-line">⏰ ${time}</div><div class="tt-line">⏱ ${dur} ${size?'· '+size:''}</div><div class="tt-line">📌 ${type}</div><div class="tt-line" style="color:var(--green);margin-top:4px">▶ Click to play</div>`;
+  tt.style.display='block';
+  tt.style.left=(e.clientX+12)+'px';
+  tt.style.top=(e.clientY-10)+'px';
+}
+function hideTlTooltip(){document.getElementById('tl-tooltip').style.display='none';}
 
 </script>
 
