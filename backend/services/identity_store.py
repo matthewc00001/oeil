@@ -76,18 +76,121 @@ class IdentityStore:
     # ── Blue Volvo detection ──────────────────────────────────────────────────
 
     def is_blue_volvo(self, vehicle_crop: np.ndarray) -> bool:
-        """Check if vehicle crop is predominantly blue (owner's Volvo)."""
+        """
+        Identify owner's Volvo using 3 factors:
+        1. Color — predominantly blue (HSV hue 95-135)
+        2. Shade — lightest blue (high HSV value = bright/light blue)
+        3. Size  — largest blue vehicle (big bounding box)
+        If Volvo profile learned, compare against it.
+        Otherwise use color + shade heuristics.
+        """
         import cv2
         if vehicle_crop is None or vehicle_crop.size == 0:
             return False
+
+        hsv = cv2.cvtColor(vehicle_crop, cv2.COLOR_BGR2HSV)
+
+        # Factor 1: Blue color check
+        mask = cv2.inRange(
+            hsv,
+            np.array([VOLVO_HUE_MIN, VOLVO_SAT_MIN, VOLVO_VAL_MIN]),
+            np.array([VOLVO_HUE_MAX, 255, 255])
+        )
+        h, w = vehicle_crop.shape[:2]
+        total_pixels = h * w
+        blue_pixels = cv2.countNonZero(mask)
+        blue_ratio = blue_pixels / total_pixels
+
+        if blue_ratio < 0.15:
+            return False  # Not blue enough
+
+        # Factor 2: Shade — mean Value (brightness) of blue pixels
+        # Volvo is the LIGHTEST blue — highest mean value
+        blue_region = hsv[:,:,2][mask > 0]
+        if len(blue_region) == 0:
+            return False
+        mean_brightness = float(np.mean(blue_region))
+
+        # Factor 3: Size — area of bounding box
+        # Volvo is the LARGEST blue vehicle
+        vehicle_area = h * w
+
+        # If Volvo profile is saved — compare against it
+        volvo_profile = self._load_volvo_profile()
+        if volvo_profile:
+            brightness_match = abs(mean_brightness - volvo_profile['brightness']) < 40
+            size_match = vehicle_area > volvo_profile['min_area'] * 0.5
+            logger.debug(
+                f"Volvo check: brightness={mean_brightness:.0f} "
+                f"(ref={volvo_profile['brightness']:.0f}), "
+                f"area={vehicle_area} (min={volvo_profile['min_area']}), "
+                f"brightness_match={brightness_match}, size_match={size_match}"
+            )
+            return brightness_match and size_match
+
+        # No profile yet — use heuristics
+        # Lightest blue (brightness > 120) and reasonably large
+        is_light_blue = mean_brightness > 120
+        is_large = vehicle_area > 5000  # at least 70x70 pixels
+        logger.debug(
+            f"Volvo heuristic: blue_ratio={blue_ratio:.2f}, "
+            f"brightness={mean_brightness:.0f}, area={vehicle_area}"
+        )
+        return is_light_blue and is_large
+
+    def _load_volvo_profile(self) -> dict:
+        """Load saved Volvo profile if available."""
+        volvo_file = STORE_PATH / 'volvo_profile.json'
+        if not volvo_file.exists():
+            return {}
+        try:
+            import json
+            return json.loads(volvo_file.read_text())
+        except Exception:
+            return {}
+
+    def learn_volvo_profile(self, vehicle_crop: np.ndarray):
+        """
+        Save Volvo profile during learning window.
+        Called when a blue vehicle enters the zone during 7:45-9:30.
+        Captures brightness and size as reference.
+        """
+        import cv2, json
+        if vehicle_crop is None or vehicle_crop.size == 0:
+            return
         hsv = cv2.cvtColor(vehicle_crop, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(
             hsv,
             np.array([VOLVO_HUE_MIN, VOLVO_SAT_MIN, VOLVO_VAL_MIN]),
             np.array([VOLVO_HUE_MAX, 255, 255])
         )
-        blue_ratio = cv2.countNonZero(mask) / (vehicle_crop.shape[0] * vehicle_crop.shape[1])
-        return blue_ratio > 0.15  # at least 15% blue pixels
+        blue_pixels = cv2.countNonZero(mask)
+        total_pixels = vehicle_crop.shape[0] * vehicle_crop.shape[1]
+        if blue_pixels / total_pixels < 0.15:
+            return  # Not blue enough to be Volvo
+
+        blue_region = hsv[:,:,2][mask > 0]
+        if len(blue_region) == 0:
+            return
+        mean_brightness = float(np.mean(blue_region))
+        vehicle_area = total_pixels
+
+        # Only update if this is brighter (lighter blue) than current profile
+        current = self._load_volvo_profile()
+        if current and mean_brightness < current.get('brightness', 0) - 10:
+            return  # Current profile is already lighter — keep it
+
+        profile = {
+            'brightness': mean_brightness,
+            'min_area':   vehicle_area,
+            'learned_at': __import__('datetime').datetime.now().isoformat(),
+        }
+        volvo_file = STORE_PATH / 'volvo_profile.json'
+        volvo_file.write_text(json.dumps(profile))
+        logger.info(
+            f"Volvo profile saved: brightness={mean_brightness:.0f}, "
+            f"area={vehicle_area}"
+        )
 
     # ── Vehicle color fingerprint ─────────────────────────────────────────────
 
