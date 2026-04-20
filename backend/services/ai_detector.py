@@ -50,7 +50,7 @@ VEHICLE_CLS = {2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck', 1: 'bicycle'}
 ANALYSIS_INTERVAL = 3.0
 MANUAL_LEARNING   = False  # set True via API to force learning
 MIN_CONFIDENCE    = 0.45
-EVENT_COOLDOWN    = 300.0  # 5 minutes between alerts per camera
+EVENT_COOLDOWN    = 3600.0  # 1 hour between alerts — until workers learned tomorrow
 MODEL_PATH        = '/opt/oeil/models/yolov8n.pt'
 
 # Cameras that can see vehicles
