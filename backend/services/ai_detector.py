@@ -47,8 +47,9 @@ PERSON_CLS  = {0: 'person'}
 VEHICLE_CLS = {2: 'car', 3: 'motorcycle', 5: 'bus', 7: 'truck', 1: 'bicycle'}
 
 ANALYSIS_INTERVAL = 3.0
+MANUAL_LEARNING   = False  # set True via API to force learning
 MIN_CONFIDENCE    = 0.45
-EVENT_COOLDOWN    = 20.0
+EVENT_COOLDOWN    = 300.0  # 5 minutes between alerts per camera
 MODEL_PATH        = '/opt/oeil/models/yolov8n.pt'
 
 # Cameras that can see vehicles
@@ -91,6 +92,10 @@ def time_mode() -> str:
 
     # Learning window: 7:45 - 9:30 weekdays
     if 7 * 60 + 45 <= t <= 9 * 60 + 30:
+        return 'learning'
+
+    # Manual learning override
+    if MANUAL_LEARNING:
         return 'learning'
 
     # Daytime

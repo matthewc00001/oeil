@@ -65,7 +65,11 @@ def _make_settings():
     for field in ['OW_SMTP_PASS', 'OW_ADMIN_PASS', 'OW_SECRET_KEY']:
         val = getattr(s, field, '')
         if val and str(val).startswith('enc:'):
-            object.__setattr__(s, field, _decrypt_if_needed(val))
+            try:
+                from services.crypto_service import decrypt_value
+                object.__setattr__(s, field, decrypt_value(str(val)))
+            except Exception:
+                pass
     return s
 
 settings = _make_settings()
