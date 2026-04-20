@@ -38,6 +38,7 @@ from config import Settings
 from database import Camera, AsyncSessionLocal
 from services.event_bus import EventBus
 from services.identity_store import IdentityStore
+from services.alert_service import AlertService
 
 logger = logging.getLogger("oeil.ai")
 
@@ -105,6 +106,7 @@ class AIDetectorService:
         self._last_event: Dict[str, float] = {}
         self._model    = None
         self._store    = IdentityStore()
+        self._alerts   = AlertService(settings)
         self._go2rtc   = settings.OW_GO2RTC_API.rstrip('/')
         self._all_cam_ids: list[str] = []
 
@@ -253,6 +255,11 @@ class AIDetectorService:
             f"ALERT [{event_type}] on {cam.name} "
             f"— {obj_class} [{mode_str}]"
         )
+        # Send email alert with snapshot
+        asyncio.create_task(self._alerts.send_alert(
+            cam.name, cam.id, event_type, obj_class,
+            confidence, self._go2rtc
+        ))
 
         # Publish event for this camera → triggers recording
         await self.event_bus.publish({
