@@ -1,41 +1,35 @@
-# go2rtc configuration for Oeil
-# Docs: https://github.com/AlexxIT/go2rtc
-
 api:
-  listen: "127.0.0.1:1984"   # Only localhost — Nginx proxies /go2rtc/
-  base_path: ""
-  static_dir: ""
-
+  listen: "127.0.0.1:1984"
 rtsp:
-  listen: ":8554"             # go2rtc re-streams RTSP on this port (for FFmpeg recorder)
-  username: ""
-  password: ""
-
+  listen: ":8554"
 webrtc:
   listen: ":8555/tcp"
-  candidates:
-    - stun:stun.l.google.com:19302
-
+  ice_servers:
+    - urls:
+        - stun:stun.l.google.com:19302
+    - urls:
+        - turn:192.9.251.234:3478
+      username: oeil
+      credential: openema2026
 log:
   level: warn
-  output: ""
-
-# ── Camera streams are added dynamically via go2rtc REST API ─────────────────
-# Oeil's ONVIF manager calls PUT /api/streams to register each camera.
-#
-# You can also pre-define cameras here if you prefer static config:
-#
-# streams:
-#   front-door:
-#     - rtsp://admin:password@192.168.1.101:554/stream1
-#   back-yard:
-#     - rtsp://admin:password@192.168.1.102:554/stream1
-#
-# Ability Enterprise cameras typically use:
-#   ONVIF port   : 80 or 8080
-#   RTSP port    : 554
-#   Stream paths : /stream1 (main), /stream2 (sub)
-#   Codec        : H.264 or H.265
-#   AI events    : pushed via HTTP webhook or ONVIF events
-
-streams: {}
+streams:
+  # Main streams — 1920x1080 H.264 25fps
+  # Credentials loaded from /etc/oeil/oeil.env (CAM_USER, CAM_PASS)
+  de864092-48d5-4f6f-b6e4-abd6feb767a2:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.151:554/live1.sdp#backchannel=0
+  17c4a85201b08a6029397ff5df291667:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.152:554/live1.sdp#backchannel=0
+  ace2c58be4612a63d383596180afe86f:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.153:554/live1.sdp#backchannel=0
+  d2ca31c62fcaf4f838dfd2577c79d249:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.154:554/live1.sdp#backchannel=0
+  # Sub-streams — 640x480 H.264 (grid view)
+  de864092-48d5-4f6f-b6e4-abd6feb767a2-sub:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.151:554/live2.sdp#backchannel=0
+  17c4a85201b08a6029397ff5df291667-sub:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.152:554/live2.sdp#backchannel=0
+  ace2c58be4612a63d383596180afe86f-sub:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.153:554/live2.sdp#backchannel=0
+  d2ca31c62fcaf4f838dfd2577c79d249-sub:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.154:554/live2.sdp#backchannel=0
