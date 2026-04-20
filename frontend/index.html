@@ -1361,8 +1361,7 @@ function openZoneEditor(camId, camName) {
   zoneCanvasImg.onload  = () => { zoneCanvasReady = true; renderZoneCanvas(); };
   zoneCanvasImg.onerror = () => { zoneCanvasReady = true; renderZoneCanvas(); };
   zoneCanvasImg.src = snapUrl;
-  authFetch(`/api/cameras/${camId}/zones`)
-    .then(r => r.json())
+  API('GET', `/cameras/${camId}/zones`)
     .then(zones => {
       zoneEditorZones = zones || [];
       zoneActiveIdx = zoneEditorZones.length > 0 ? 0 : -1;
@@ -1674,12 +1673,8 @@ async function saveZones() {
     zoneDraftPoints = [];
   }
   try {
-    const resp = await authFetch(`/api/cameras/${zoneEditorCamId}/zones`, {
-      method: 'PUT',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({zones: zoneEditorZones}),
-    });
-    if (!resp.ok) throw new Error(await resp.text());
+    const resp = await API('PUT', `/cameras/${zoneEditorCamId}/zones`, {zones: zoneEditorZones});
+    if (!resp) throw new Error('Save failed');
     const toast = document.getElementById('zone-toast');
     toast.style.display = 'block';
     setTimeout(() => { toast.style.display = 'none'; }, 2500);

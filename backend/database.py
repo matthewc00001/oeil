@@ -90,6 +90,7 @@ class Camera(SQLModel, table=True):
     location: str = ""
     notes: str = ""
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    zones_json: str = Field(default="[]")
 
 
 class Recording(SQLModel, table=True):
@@ -160,16 +161,3 @@ async def init_db():
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
-
-
-class MotionZone(SQLModel, table=True):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    camera_id: str = Field(foreign_key="camera.id")
-    name: str = "Zone 1"
-    points: str = "[]"
-    enabled: bool = True
-    trigger_recording: bool = True
-    trigger_alert: bool = True
-    sensitivity: int = 50
-    color: str = "#00e676"
-    created_at: datetime = Field(default_factory=datetime.utcnow)

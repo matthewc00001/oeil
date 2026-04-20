@@ -29,6 +29,7 @@ from services.event_bus import EventBus
 from services.go2rtc import Go2RTCClient
 from services.notification import NotificationService
 from services.motion_detector import MotionDetectorService
+from services.ai_detector import AIDetectorService
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,11 +56,14 @@ async def lifespan(app: FastAPI):
     await app.state.recorder.start()
     app.state.motion = MotionDetectorService(settings, app.state.event_bus)
     await app.state.motion.start()
+    app.state.ai = AIDetectorService(settings, app.state.event_bus)
+    await app.state.ai.start()
 
     logger.info("All services started — Oeil ready")
     yield
 
     logger.info("Oeil shutting down…")
+    await app.state.ai.stop()
     await app.state.motion.stop()
     await app.state.recorder.stop()
     await app.state.onvif.stop()

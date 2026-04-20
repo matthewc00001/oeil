@@ -266,10 +266,10 @@ class RecorderService:
             # Update DB
             async with AsyncSessionLocal() as session:
                 from sqlmodel import select
-                result = await session.exec(
+                result = await session.execute(
                     select(Recording).where(Recording.id == rec.recording_id)
                 )
-                db_rec = result.first()
+                db_rec = result.scalars().first()
                 if db_rec:
                     db_rec.thumbnail_path = str(thumb_path)
                     await session.commit()
@@ -279,25 +279,89 @@ class RecorderService:
     # ── Storage watchdog ───────────────────────────────────────────────────────
 
     async def _storage_watchdog(self):
-        """Delete oldest recordings when storage limit is reached."""
+        """
+        Storage watchdog — runs every hour.
+        Rule 1: Delete all recordings older than 36 hours.
+        Rule 2: If disk usage > 50%, delete oldest recordings until back under 50%.
+        """
+        import shutil
+        import time
+
+        MAX_AGE_SECONDS = 48 * 3600   # 48 hours
+        MAX_DISK_PERCENT = 50.0        # never exceed 50% of total disk
+
         while self._running:
-            await asyncio.sleep(3600)  # check hourly
+            await asyncio.sleep(900)   # check every 15 minutes
             try:
                 rec_dir = self.settings.OW_RECORDINGS_DIR
                 if not rec_dir.exists():
                     continue
-                total_bytes = sum(
-                    f.stat().st_size for f in rec_dir.rglob("*.mp4") if f.is_file()
+
+                now = time.time()
+                deleted_age  = 0
+                deleted_size = 0
+
+                # ── Rule 1: Delete recordings older than 36 hours ──────────
+                all_files = sorted(
+                    [f for f in rec_dir.rglob("*.mp4") if f.is_file()],
+                    key=lambda f: f.stat().st_mtime
                 )
-                max_bytes = self.settings.OW_MAX_STORAGE_GB * 1024 ** 3
-                if total_bytes > max_bytes:
-                    files = sorted(rec_dir.rglob("*.mp4"), key=lambda f: f.stat().st_mtime)
-                    for f in files:
-                        if total_bytes <= max_bytes * 0.9:
+                for f in all_files:
+                    age_seconds = now - f.stat().st_mtime
+                    if age_seconds > MAX_AGE_SECONDS:
+                        size = f.stat().st_size
+                        f.unlink(missing_ok=True)
+                        deleted_age  += 1
+                        deleted_size += size
+                        logger.info(
+                            f"Storage [36h rule]: deleted {f.name} "
+                            f"(age {age_seconds/3600:.1f}h, {size/1024/1024:.1f} MB)"
+                        )
+
+                if deleted_age > 0:
+                    logger.info(
+                        f"Storage [36h rule]: removed {deleted_age} file(s), "
+                        f"{deleted_size/1024/1024:.1f} MB freed"
+                    )
+
+                # ── Rule 2: Keep disk under 50% ────────────────────────────
+                disk = shutil.disk_usage(str(rec_dir))
+                used_pct = disk.used / disk.total * 100
+
+                if used_pct > MAX_DISK_PERCENT:
+                    logger.warning(
+                        f"Storage [50% rule]: disk at {used_pct:.1f}% — cleaning up"
+                    )
+                    # Re-scan after age deletions
+                    remaining = sorted(
+                        [f for f in rec_dir.rglob("*.mp4") if f.is_file()],
+                        key=lambda f: f.stat().st_mtime
+                    )
+                    deleted_disk = 0
+                    for f in remaining:
+                        disk = shutil.disk_usage(str(rec_dir))
+                        used_pct = disk.used / disk.total * 100
+                        if used_pct <= MAX_DISK_PERCENT:
                             break
-                        total_bytes -= f.stat().st_size
-                        f.unlink()
-                        logger.info(f"Storage cleanup: deleted {f.name}")
+                        size = f.stat().st_size
+                        f.unlink(missing_ok=True)
+                        deleted_disk += 1
+                        logger.info(
+                            f"Storage [50% rule]: deleted {f.name} "
+                            f"({size/1024/1024:.1f} MB, disk now "
+                            f"{(disk.used-size)/disk.total*100:.1f}%)"
+                        )
+
+                    if deleted_disk > 0:
+                        logger.info(
+                            f"Storage [50% rule]: removed {deleted_disk} file(s)"
+                        )
+                else:
+                    logger.info(
+                        f"Storage OK: disk at {used_pct:.1f}% "
+                        f"(limit 50%, age limit 36h)"
+                    )
+
             except Exception as e:
                 logger.error(f"Storage watchdog error: {e}")
 
@@ -306,8 +370,8 @@ class RecorderService:
     async def _get_camera(self, camera_id: str) -> Optional[Camera]:
         async with AsyncSessionLocal() as session:
             from sqlmodel import select
-            result = await session.exec(select(Camera).where(Camera.id == camera_id))
-            return result.first()
+            result = await session.execute(select(Camera).where(Camera.id == camera_id))
+            return result.scalars().first()
 
     async def _persist_recording_start(
         self, rec: ActiveRecording, camera: Camera,
@@ -330,8 +394,8 @@ class RecorderService:
     ):
         async with AsyncSessionLocal() as session:
             from sqlmodel import select
-            result = await session.exec(select(Recording).where(Recording.id == rec.recording_id))
-            db_rec = result.first()
+            result = await session.execute(select(Recording).where(Recording.id == rec.recording_id))
+            db_rec = result.scalars().first()
             if db_rec:
                 db_rec.ended_at = ended_at
                 db_rec.duration_seconds = duration
