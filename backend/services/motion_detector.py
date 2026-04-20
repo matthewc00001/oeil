@@ -120,8 +120,19 @@ class MotionDetectorService:
             if not state.motion_active or (now - state.last_motion_at) > MOTION_COOLDOWN:
                 state.motion_active = True
                 state.last_motion_at = now
-                await self._publish_motion(cam)
-        else:
+                # Only record during active periods
+                from datetime import datetime as _dt
+                _now = _dt.now()
+                _t   = _now.hour * 60 + _now.minute
+                _wd  = _now.weekday()
+                _is_weekend    = _wd in (5, 6)
+                _is_morning    = 7*60+45 <= _t <= 9*60+30 and _wd < 5
+                _is_end_of_day = 17*60 <= _t <= 18*60+30 and _wd < 5
+                _is_night      = (_t >= 18*60+30 or _t < 8*60) and _wd < 5
+                if _is_weekend or _is_morning or _is_end_of_day or _is_night:
+                    await self._publish_motion(cam)
+                else:
+                    logger.debug(f'Motion on {cam.name} — outside active hours')
             if state.motion_active and (now - state.last_motion_at) > MOTION_COOLDOWN:
                 state.motion_active = False
 
