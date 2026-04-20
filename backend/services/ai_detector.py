@@ -58,7 +58,11 @@ VEHICLE_CAMERAS = {
     'de864092-48d5-4f6f-b6e4-abd6feb767a2',  # Entree Principale
     'ace2c58be4612a63d383596180afe86f',        # Camera 03
     'd2ca31c62fcaf4f838dfd2577c79d249',        # Camera 04
+    # Camera 05 (402469b0) — persons only, no vehicles
 }
+
+# Cameras that detect persons (all cameras)
+# Camera 05 is people/intruder focused — highest priority
 
 
 def time_mode() -> str:

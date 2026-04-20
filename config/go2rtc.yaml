@@ -15,7 +15,6 @@ log:
   level: warn
 streams:
   # Main streams — 1920x1080 H.264 25fps
-  # Credentials loaded from /etc/oeil/oeil.env (CAM_USER, CAM_PASS)
   de864092-48d5-4f6f-b6e4-abd6feb767a2:
     - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.151:554/live1.sdp#backchannel=0
   17c4a85201b08a6029397ff5df291667:
@@ -33,3 +32,8 @@ streams:
     - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.153:554/live2.sdp#backchannel=0
   d2ca31c62fcaf4f838dfd2577c79d249-sub:
     - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.154:554/live2.sdp#backchannel=0
+  # Camera 05
+  402469b0-db45-49c6-959c-bc425abdadd0:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.155:554/live1.sdp#backchannel=0
+  402469b0-db45-49c6-959c-bc425abdadd0-sub:
+    - rtsp://${CAM_USER}:${CAM_PASS}@192.9.251.155:554/live2.sdp#backchannel=0
