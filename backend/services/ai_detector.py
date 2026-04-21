@@ -214,7 +214,14 @@ class AIDetectorService:
             # Learn this vehicle as a worker vehicle
             await loop.run_in_executor(
                 None, self._store.learn_vehicle, fingerprint, cam.id)
+            # Also check if this is the Volvo and save its profile
+            await loop.run_in_executor(
+                None, self._store.learn_volvo_profile, crop)
             return
+
+        # Always try to learn Volvo profile regardless of mode
+        await loop.run_in_executor(
+            None, self._store.learn_volvo_profile, crop)
 
         if mode == 'day':
             return  # ignore vehicles during day
