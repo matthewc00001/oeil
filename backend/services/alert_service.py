@@ -114,7 +114,7 @@ Système de surveillance IA
 
         # Attach snapshot if available
         if snapshot:
-            img = MIMEImage(snapshot, name=f"alerte_{camera_name}.jpg")
+            img = MIMEImage(snapshot, _subtype='jpeg', name=f"alerte_{camera_name}.jpg")
             img.add_header('Content-Disposition', 'attachment',
                           filename=f"alerte_{camera_name}.jpg")
             msg.attach(img)
