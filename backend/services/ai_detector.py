@@ -40,6 +40,7 @@ from services.event_bus import EventBus
 from services.identity_store import IdentityStore
 from services.alert_service import AlertService
 from services.sms_service import SMSService
+from services.mms_service import MMSService
 
 logger = logging.getLogger("oeil.ai")
 
@@ -118,6 +119,7 @@ class AIDetectorService:
         self._store    = IdentityStore()
         self._alerts   = AlertService(settings)
         self._sms      = SMSService()
+        self._mms      = MMSService()
         self._go2rtc   = settings.OW_GO2RTC_API.rstrip('/')
         self._all_cam_ids: list[str] = []
 
@@ -278,10 +280,16 @@ class AIDetectorService:
             cam.name, cam.id, event_type, obj_class,
             confidence, self._go2rtc
         ))
-        # Send SMS alert
+        # Send SMS alert with all recording camera IDs
         asyncio.create_task(self._sms.send_alert(
-            cam.name, cam.id, event_type, obj_class
+            cam.name, cam.id, event_type, obj_class,
+            all_camera_ids=self._all_cam_ids
         ))
+        # Send MMS with video clip — wait 20s for recording to save
+        async def delayed_mms():
+            await asyncio.sleep(20)
+            await self._mms.send_alert(cam.name, cam.id, event_type)
+        asyncio.create_task(delayed_mms())
 
         # Publish event for this camera → triggers recording
         await self.event_bus.publish({

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Oeil VMS — Alerte</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif}
+.header{background:#cc2233;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10}
+.header h1{font-size:16px;font-weight:700}
+.header .time{font-size:11px;opacity:0.8;margin-left:auto}
+.cam-block{margin:8px;background:#111;border-radius:10px;overflow:hidden;border:2px solid #cc2233}
+.cam-block.primary{border-color:#ff4444;border-width:3px}
+.cam-block.secondary{border-color:#333;border-width:1px}
+.cam-title{padding:8px 12px;font-size:12px;font-weight:600;background:#1a1a1a;display:flex;align-items:center;gap:8px}
+.cam-title .badge{background:#cc2233;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px}
+.cam-title .badge.secondary{background:#333}
+.cam-stream{width:100%;aspect-ratio:16/9;background:#000}
+.cam-stream iframe{width:100%;height:100%;border:none}
+.info-bar{padding:10px 16px;background:#111;border-top:1px solid #222;font-size:12px;color:#888;text-align:center}
+.login-box{max-width:340px;margin:60px auto;padding:24px;background:#111;border-radius:12px;border:1px solid #333}
+.login-box h2{margin-bottom:16px;color:#cc2233;font-size:16px}
+input{width:100%;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;font-size:16px;margin-bottom:10px;outline:none}
+.btn{width:100%;padding:12px;background:#cc2233;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+.error{color:#cc2233;font-size:12px;margin-top:6px;text-align:center}
+</style>
+</head>
+<body>
+<div id="login-screen" style="display:none">
+  <div class="header"><h1>🚨 Oeil VMS — Alerte Securite</h1></div>
+  <div class="login-box">
+    <h2>Connexion requise</h2>
+    <input type="text" id="username" placeholder="Utilisateur" value="admin" autocomplete="username">
+    <input type="password" id="password" placeholder="Mot de passe" autocomplete="current-password">
+    <button class="btn" onclick="doLogin()">Voir les cameras</button>
+    <div class="error" id="login-error"></div>
+  </div>
+</div>
+
+<div id="main-screen" style="display:none">
+  <div class="header">
+    <h1>🚨 ALERTE SECURITE</h1>
+    <span class="time" id="alert-time"></span>
+  </div>
+  <div id="cameras-container"></div>
+  <div class="info-bar">Oeil VMS — Openema SARL — Surveillance active</div>
+</div>
+
+<script>
+let TOKEN = localStorage.getItem("ow_alert_token") || "";
+const BASE = window.location.origin;
+const params = new URLSearchParams(window.location.search);
+const triggeredCamId = params.get("cam") || "";
+const eventType = params.get("type") || "detection";
+const alertTime = params.get("time") || new Date().toLocaleTimeString();
+
+document.getElementById("alert-time").textContent = alertTime;
+
+async function doLogin() {
+  const user = document.getElementById("username").value;
+  const pass = document.getElementById("password").value;
+  try {
+    const r = await fetch(BASE + "/api/auth/login", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({username: user, password: pass})
+    });
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    TOKEN = data.access_token;
+    localStorage.setItem("ow_alert_token", TOKEN);
+    showCameras();
+  } catch(e) {
+    document.getElementById("login-error").textContent = "Identifiants incorrects";
+  }
+}
+
+async function showCameras() {
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("main-screen").style.display = "block";
+
+  const r = await fetch(BASE + "/api/cameras/", {
+    headers: {"Authorization": "Bearer " + TOKEN}
+  });
+  const cameras = await r.json();
+  const armed = cameras.filter(c => c.enabled && c.armed);
+
+  // Triggered camera first, rest after
+  const triggered = armed.filter(c => c.id === triggeredCamId);
+  const others = armed.filter(c => c.id !== triggeredCamId);
+  const ordered = [...triggered, ...others];
+
+  const container = document.getElementById("cameras-container");
+  container.innerHTML = "";
+
+  ordered.forEach((cam, idx) => {
+    const isPrimary = cam.id === triggeredCamId || idx === 0;
+    const div = document.createElement("div");
+    div.className = "cam-block " + (isPrimary ? "primary" : "secondary");
+    div.innerHTML = `
+      <div class="cam-title">
+        <span>${cam.name}</span>
+        <span class="badge ${isPrimary ? "" : "secondary"}">${isPrimary ? "⚠️ DECLENCHEUR" : "Correle"}</span>
+      </div>
+      <div class="cam-stream">
+        <iframe src="/go2rtc/stream.html?src=${cam.id}&mode=webrtc&background=true&visibilityCheck=false"></iframe>
+      </div>`;
+    container.appendChild(div);
+  });
+}
+
+// Check token
+if (TOKEN) {
+  showCameras();
+} else {
+  document.getElementById("login-screen").style.display = "block";
+}
+</script>
+</body>
+</html>

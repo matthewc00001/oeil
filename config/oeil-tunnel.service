@@ -1,0 +1,16 @@
+[Unit]
+Description=Oeil — Cloudflare Tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cloudflared tunnel --url http://localhost:80
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=oeil-tunnel
+
+[Install]
+WantedBy=multi-user.target

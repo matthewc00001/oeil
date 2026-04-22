@@ -48,7 +48,8 @@ class SMSService:
             logger.error(f"SMS service init failed: {e}")
 
     async def send_alert(self, camera_name: str, camera_id: str,
-                          event_type: str, obj_class: str):
+                          event_type: str, obj_class: str,
+                          all_camera_ids: list = None):
         if not self._ready:
             return
 
@@ -62,14 +63,17 @@ class SMSService:
         self._last_sms[camera_id] = now
 
         now_str = datetime.now().strftime('%d/%m/%Y %H:%M')
-        icon    = '🚨' if event_type == 'person' else '🚗'
-        body    = (
-            f"{icon} OEIL VMS ALERT\n"
+        icon = '🚨' if event_type == 'person' else '🚗'
+        from services.crypto_service import get_decrypted_env
+        tunnel = get_decrypted_env('TUNNEL_URL', 'http://192.9.251.234')
+        cams   = ','.join(all_camera_ids) if all_camera_ids else camera_id
+        url    = f"{tunnel}/alert?cam={camera_id}&cams={cams}&type={event_type}"
+        body   = (
+            f"{icon} OEIL VMS ALERTE\n"
             f"Camera: {camera_name}\n"
-            f"Event: {event_type.upper()} detected\n"
-            f"Object: {obj_class}\n"
-            f"Time: {now_str}\n"
-            f"Check: http://192.9.251.234"
+            f"Type: {event_type.upper()}\n"
+            f"Heure: {now_str}\n"
+            f"Voir live: {url}"
         )
 
         loop = asyncio.get_event_loop()
