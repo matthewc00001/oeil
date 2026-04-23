@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from database import Recording, RecordingTrigger, Camera, AsyncSessionLocal
+from sqlmodel import select, delete
 from services.event_bus import EventBus
 from config import Settings
 
@@ -313,6 +314,9 @@ class RecorderService:
                         f.unlink(missing_ok=True)
                         deleted_age  += 1
                         deleted_size += size
+                        async with AsyncSessionLocal() as session:
+                            await session.execute(delete(Recording).where(Recording.filepath == str(f)))
+                            await session.commit()
                         logger.info(
                             f"Storage [36h rule]: deleted {f.name} "
                             f"(age {age_seconds/3600:.1f}h, {size/1024/1024:.1f} MB)"
@@ -346,6 +350,9 @@ class RecorderService:
                         size = f.stat().st_size
                         f.unlink(missing_ok=True)
                         deleted_disk += 1
+                        async with AsyncSessionLocal() as session:
+                            await session.execute(delete(Recording).where(Recording.filepath == str(f)))
+                            await session.commit()
                         logger.info(
                             f"Storage [50% rule]: deleted {f.name} "
                             f"({size/1024/1024:.1f} MB, disk now "
