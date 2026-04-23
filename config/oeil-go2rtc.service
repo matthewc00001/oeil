@@ -1,6 +1,3 @@
-# ── oeil-go2rtc.service ──────────────────────────────────────────────────
-# RTSP/ONVIF proxy + HLS/WebRTC bridge
-
 [Unit]
 Description=Oeil — go2rtc stream proxy
 After=network-online.target
@@ -10,8 +7,8 @@ Wants=network-online.target
 Type=simple
 User=oeil
 Group=oeil
-EnvironmentFile=/etc/oeil/oeil.env
-ExecStart=/usr/local/bin/go2rtc -config /etc/oeil/go2rtc.yaml
+LoadCredentialEncrypted=CAM_PASS:/etc/credstore.encrypted/CAM_PASS
+ExecStart=/bin/bash -c 'export CAM_USER=admin; export CAM_PASS=$(cat $CREDENTIALS_DIRECTORY/CAM_PASS); exec /usr/local/bin/go2rtc -config /etc/oeil/go2rtc.yaml'
 Restart=always
 RestartSec=5
 StandardOutput=journal
