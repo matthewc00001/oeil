@@ -1098,7 +1098,7 @@ function renderRecordings(recs) {
     ].join('');
     const camName = cameras.find(c=>c.id===r.camera_id)?.name || r.camera_id;
     return `
-      <div class="rec-item" onclick='openVideoPlayer(_lastRecs.find(x=>x.id===\`${r.id}\`))'>
+      <div class="rec-item" onclick='openVideoPlayer(_lastRecs[${recs.indexOf(r)}])'>
         <div class="rec-thumb">
           ${r.thumbnail_path
             ? `<img src="/api/recordings/${r.id}/thumbnail" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'rec-thumb-placeholder\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><polygon points=\\'5 3 19 12 5 21 5 3\\'/></svg></div>'">`
