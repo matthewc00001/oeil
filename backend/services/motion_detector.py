@@ -28,6 +28,11 @@ logger = logging.getLogger("oeil.motion")
 FRAME_INTERVAL = 0.5   # 2 fps — light on CPU
 # Minimum seconds between motion events per camera (cooldown)
 MOTION_COOLDOWN = 15.0
+# Number of consecutive frames motion must be detected before triggering.
+# At FRAME_INTERVAL=0.5s: 4 frames = 2 seconds minimum.
+# Fast headlights sweep through in <1s — they will never reach this threshold.
+# A real intruder standing or moving slowly will easily exceed it.
+MOTION_PERSISTENCE = 4
 
 
 class CameraMotionState:
@@ -35,6 +40,7 @@ class CameraMotionState:
         self.prev_gray: Optional[np.ndarray] = None
         self.last_motion_at: float = 0.0
         self.motion_active: bool = False
+        self.consecutive_frames: int = 0  # persistence counter — filters fast light sweeps
 
 
 class MotionDetectorService:
@@ -116,7 +122,20 @@ class MotionDetectorService:
             motion_detected = motion_pct > 0.02   # 2% of frame
 
         now = time.time()
+
+        # ── Persistence filter ────────────────────────────────────────────────
+        # Motion must be sustained for MOTION_PERSISTENCE consecutive frames
+        # before we trigger. This eliminates fast headlight sweeps which
+        # appear for only 1-2 frames. A real person/vehicle in the zone
+        # will sustain motion for many frames.
         if motion_detected:
+            state.consecutive_frames += 1
+        else:
+            state.consecutive_frames = 0
+
+        sustained_motion = motion_detected and state.consecutive_frames >= MOTION_PERSISTENCE
+
+        if sustained_motion:
             if not state.motion_active or (now - state.last_motion_at) > MOTION_COOLDOWN:
                 state.motion_active = True
                 state.last_motion_at = now
@@ -133,8 +152,8 @@ class MotionDetectorService:
                     await self._publish_motion(cam)
                 else:
                     logger.debug(f'Motion on {cam.name} — outside active hours')
-            if state.motion_active and (now - state.last_motion_at) > MOTION_COOLDOWN:
-                state.motion_active = False
+        if state.motion_active and (now - state.last_motion_at) > MOTION_COOLDOWN:
+            state.motion_active = False
 
     # ── Zone checking ─────────────────────────────────────────────────────────
 
