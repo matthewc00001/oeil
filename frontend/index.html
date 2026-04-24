@@ -347,7 +347,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .vp-modal-meta{font-size:11px;color:var(--text3);font-family:var(--mono)}
 .vp-modal-close{width:28px;height:28px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
 .vp-modal-close:hover{background:var(--red-dim);color:var(--red)}
-.vp-video-wrap{background:#000;width:100%;aspect-ratio:16/9}
+.vp-video-wrap{background:#000;width:100%;aspect-ratio:16/9}.vp-video-wrap.portrait{aspect-ratio:9/16;max-height:70vh;width:auto;margin:0 auto}
 .vp-video-wrap video{width:100%;height:100%;display:block;outline:none}
 .vp-modal-foot{padding:8px 14px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--border)}
 .vp-dl-btn{padding:4px 12px;border-radius:4px;border:1px solid rgba(0,230,118,.3);background:var(--green-dim);color:var(--green);font-size:11px;font-family:var(--font);cursor:pointer;font-weight:500}
@@ -1098,7 +1098,7 @@ function renderRecordings(recs) {
     ].join('');
     const camName = cameras.find(c=>c.id===r.camera_id)?.name || r.camera_id;
     return `
-      <div class="rec-item" onclick='openVideoPlayer(_lastRecs[${recs.indexOf(r)}])'>
+      <div class="rec-item" onclick='openVideoPlayer(_lastRecs.find(x=>x.id===`${r.id}`))'>
         <div class="rec-thumb">
           ${r.thumbnail_path
             ? `<img src="/api/recordings/${r.id}/thumbnail" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\\'rec-thumb-placeholder\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><polygon points=\\'5 3 19 12 5 21 5 3\\'/></svg></div>'">`
@@ -1775,6 +1775,9 @@ function openVideoPlayer(rec) {
   video.load();
   video.play().catch(()=>{});
 
+  const isPortrait = rec.camera_id === '402469b0-db45-49c6-959c-bc425abdadd0';
+  document.querySelector('.vp-modal').style.width = isPortrait ? '440px' : '860px';
+  document.querySelector('.vp-video-wrap').classList.toggle('portrait', isPortrait);
   document.getElementById('vp-modal').style.display = 'flex';
 }
 
